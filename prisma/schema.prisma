@@ -65,7 +65,9 @@ model Users {
   id            String        @id @default(uuid())
   first_name    String
   last_name     String
-  user_role     String
+  roleId        Int     @default(1)
+  role          Role    @relation(fields: [roleId], references: [id])
+  //enum atau model
   profile_picture String?
   password      String
   email         String        @unique
@@ -84,4 +86,10 @@ model Transaction {
   user_id       String
   total_amount  Float
   payment_method String
+}
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String
+  user User[]
 }

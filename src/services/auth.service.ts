@@ -8,7 +8,7 @@ import { SECRET_KEY } from "../config";
 
 async function GetAll() {
   try {
-    return await prisma.user.findMany();
+    return await prisma.users.findMany();
   } catch(err) {
     throw err;
   }
@@ -16,17 +16,13 @@ async function GetAll() {
 
 async function FindUserByEmail(email: string) {
   try {
-    const user = await prisma.users.findFirst({
+    const users = await prisma.users.findFirst({
       select: {
         email: true,
         first_name: true,
         last_name: true,
         password: true,
-        role: {
-          select: {
-            name: true,
-          },
-        },
+        roleId: true,
       },
       where: {
         email,
@@ -37,7 +33,7 @@ async function FindUserByEmail(email: string) {
     });
     // select * from user where email = email limit 1
 
-    return user;
+    return users;
   } catch (err) {
     throw err;
   }
@@ -54,18 +50,20 @@ async function RegisterService(param: IRegisterParam) {
       const salt = genSaltSync(10);
       const hashedPassword = await hash(param.password, salt);
 
-      let user = await t.user.create({
+      let Users = await t.users.create({
         data: {
           first_name: param.first_name,
           last_name: param.last_name,
           email: param.email,
           password: hashedPassword,
-          isVerified: false,
+          is_Verified: false,
           roleId: param.roleId,
+          user_points: 0, // Default value for user_points
+          expiry_points: new Date(), // Default value for expiry_points
         },
       });
 
-      return user;
+      return Users;
     });
 
     // insert into user(first_name, last_name, email, password, isverified) values(param.first_name, param.last_name, param.email, param.password, false)
@@ -76,19 +74,19 @@ async function RegisterService(param: IRegisterParam) {
 
 async function LoginService(param: ILoginParam) {
   try {
-    const user = await FindUserByEmail(param.email);
+    const users = await FindUserByEmail(param.email);
 
-    if (!user) throw new Error("Email tidak terdaftar");
+    if (!users) throw new Error("Email tidak terdaftar");
 
-    const checkPass = await compare(param.password, user.password);
+    const checkPass = await compare(param.password, users.password);
 
     if (!checkPass) throw new Error("Password Salah");
 
     const payload = {
-      email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      role: user.role.name
+      email: users.email,
+      first_name: users.first_name,
+      last_name: users.last_name,
+      roleID: users.roleId
     }
 
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});

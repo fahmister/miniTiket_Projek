@@ -73,9 +73,10 @@ model Users {
   email         String        @unique
   referral_code String?
   user_points   Int
-  expiry_points Int
+  expiry_points DateTime
   transactions  Transaction[]
   reviews       Review[]
+  is_Verified   Boolean
 }
 
 model Transaction {
@@ -91,5 +92,5 @@ model Transaction {
 model Role {
   id   Int    @id @default(autoincrement())
   name String
-  user User[]
+  user Users[]
 }

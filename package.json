@@ -1,7 +1,7 @@
 {
   "name": "minitiket_projek",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -19,13 +19,18 @@
     "nodemailer": "^6.10.1",
     "prisma": "^6.6.0",
     "streamifier": "^0.1.1",
+    "supertest": "^7.1.0",
+    "ts-jest": "^29.3.2",
     "zod": "^3.24.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.1",
+    "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.14.1",
+    "@types/supertest": "^6.0.3",
+    "jest-mock-extended": "^4.0.0-beta1",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

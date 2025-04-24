@@ -3,8 +3,14 @@ import { RegisterService, LoginService, GetAll } from "../services/auth.service"
 
 import { IUserReqParam } from "../custom";
 
+// RegisterController function to handle user registration
+// It takes the request, response, and next function as parameters
+
+// If an error occurs, it calls the next function to handle the error
 async function RegisterController (req: Request, res: Response, next: NextFunction) {
     try {
+        // Validate the request body using the IRegisterParam interface
+        // This ensures that the request body contains the required fields for registration
         const data = await RegisterService(req.body);
 
         res.status(200).send({
@@ -44,4 +50,5 @@ async function UsersController (req: Request, res: Response, next: NextFunction)
     }
 }
 
+// Exporting the controllers to be used in routers directory
 export { RegisterController, LoginController, UsersController }

@@ -87,7 +87,7 @@ model Users {
   email             String        @unique
   referral_code     String?       @unique @db.VarChar(30) // Unique code for each user
   user_points       Int
-  roleId            Int           @default(1)
+  roleId            String
   is_verified       Boolean       @default(false)
   expiry_points     DateTime
   reviews           Review[]
@@ -108,7 +108,7 @@ model Transaction {
 }
 
 model Role {
-  id   Int      @id @default(autoincrement())
+  id   String   @id @default(uuid())
   name UserRole
   user Users[]
 }

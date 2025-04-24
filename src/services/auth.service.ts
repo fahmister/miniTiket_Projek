@@ -14,8 +14,12 @@ async function GetAll() {
   }
 }
 
+// Function to find a user by email in database via connection pool (prisma)
+// This function takes an email as a parameter and returns a promise of type Users | null
+// It uses the Prisma Client to query the database for a user with the given email
 async function FindUserByEmail(email: string) {
   try {
+    // find First is used to find the first record that matches the given criteria
     const users = await prisma.users.findFirst({
       select: {
         email: true,
@@ -27,11 +31,11 @@ async function FindUserByEmail(email: string) {
       where: {
         email,
       },
+      // lines 23 & 31-33 same as this query: select * from user where email = email limit 1
       // include: {
       //   role: true
       // }
     });
-    // select * from user where email = email limit 1
 
     return users;
   } catch (err) {
@@ -39,24 +43,31 @@ async function FindUserByEmail(email: string) {
   }
 }
 
+// Function to register a new user
+// This async function takes a parameter of type IRegisterParam and returns a promise of type Users
+
 async function RegisterService(param: IRegisterParam) {
   try {
-    // validasi ketika email sudah terdaftar
+    // validate email aleady registered
+    // select * from user where email = email limit 1
     const isExist = await FindUserByEmail(param.email);
-
-    if (isExist) throw new Error("Email sudah terdaftar");
+    
+    if (isExist) throw new Error("Email is already registered");
 
     await prisma.$transaction(async (t) => {
       const salt = genSaltSync(10);
       const hashedPassword = await hash(param.password, salt);
-
+      
+      // insert into user table in prisma database
+      // (first_name, last_name, email, password, isverified) 
+      // values(param.first_name, param.last_name, param.email, param.password, false)
       let Users = await t.users.create({
         data: {
           first_name: param.first_name,
           last_name: param.last_name,
           email: param.email,
           password: hashedPassword,
-          is_Verified: false,
+          is_verified: false,
           roleId: param.roleId,
           user_points: 0, // Default value for user_points
           expiry_points: new Date(), // Default value for expiry_points
@@ -65,10 +76,8 @@ async function RegisterService(param: IRegisterParam) {
 
       return Users;
     });
-
-    // insert into user(first_name, last_name, email, password, isverified) values(param.first_name, param.last_name, param.email, param.password, false)
   } catch (err) {
-    throw err;
+    throw err; // Handle error
   }
 }
 
@@ -97,4 +106,5 @@ async function LoginService(param: ILoginParam) {
   }
 }
 
+// Exporting the functions to be used in controllers directory
 export { RegisterService, LoginService, GetAll };

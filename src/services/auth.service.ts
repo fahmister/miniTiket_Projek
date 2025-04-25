@@ -1,10 +1,11 @@
-import { IRegisterParam, ILoginParam } from "../interface/user.interface";
+import { IRegisterParam, ILoginParam,  } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { sign } from "jsonwebtoken";
-import { ReferralService } from "./referral.service";
+import { createReferralCode  } from '../services/referral.service';
 
 import { SECRET_KEY } from "../config";
+
 
 async function GetAll() {
   try {
@@ -84,10 +85,12 @@ async function RegisterService(param: IRegisterParam) {
       if (!referringUser) {
         throw new Error('Invalid referral code');
       }
-      referredByUserId = referringUser.id;
+      referredByUserId = referringUser.id.toString();
     }
 
-      let users = await t.users.create({
+    return await prisma.$transaction(async (tx) => {
+      // 1. Create user WITH referral code in the same operation
+      const user = await tx.users.create({
         data: {
           first_name: param.first_name,
           last_name: param.last_name,
@@ -96,20 +99,27 @@ async function RegisterService(param: IRegisterParam) {
           is_verified: false,
           roleId: defaultRoleId, // Default role ID
           user_points: 0, // Default value for user_points
-          expiry_points: new Date(), // Default value for expiry_points
-          referral_code: referredByUserId, // Use the provided referral code
+          expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry
+          referral_code: param.referral_code || ''
         },
       });
+      
+      // 2. Generate a proper referral code and update
+      const finalReferralCode = `TIX-${user.id.toString().padStart(6, '0')}`;
+      await tx.users.update({
+        where: { id: user.id },
+        data: { referral_code: finalReferralCode },
+      });
 
-      // Generate a referral code for the new user
-      await ReferralService.createReferralCode(users.id);
-
-      return users;
-    });
-  } catch (err) {
-    throw err; // Handle error
+      return user;
+    }); // Closing parenthesis for prisma.$transaction
+    }); // Add missing parenthesis for outer prisma.$transaction
+  } catch (error) {
+    console.error('Registration failed:', error);
+    throw new Error(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
+
 
 async function LoginService(param: ILoginParam) {
   try {

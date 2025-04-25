@@ -1,4 +1,5 @@
 export interface IUserReqParam {
+    id: number; // Add the 'id' property to match the expected type
     email: string;
     first_name: string;
     last_name: string;

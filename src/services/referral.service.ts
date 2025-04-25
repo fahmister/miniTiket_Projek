@@ -1,71 +1,71 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from "../lib/prisma";
+import { z } from 'zod';
 
-export class ReferralService {
-  private static readonly REFERRAL_CODE_LENGTH = 8;
-  private static prisma = new PrismaClient();
 
-  // Generate a random referral code (unchanged)
-  private static generateRandomCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let result = '';
-    for (let i = 0; i < this.REFERRAL_CODE_LENGTH; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+// Flexible ID validation based on your schema
+const userIdSchema = z.union([
+  z.string().uuid(),       // For UUID strings
+  z.string().regex(/^\d+$/).transform(Number),  // For numeric IDs passed as strings
+  z.number()               // For numeric IDs
+]);
+
+export function generateReferralCode(userId: string | number): string {
+  const prefix = 'TIX';
+  const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}-${randomPart}-${String(userId).substring(0, 4)}`;
+}
+
+export async function createReferralCode(userId: unknown): Promise<string> {
+  try {
+    // Validate and normalize the ID
+    const validation = userIdSchema.safeParse(userId);
+    if (!validation.success) {
+      throw new Error(`Invalid user ID: ${JSON.stringify(validation.error.issues)}`);
     }
-    return result;
-  }
 
-  // Updated to accept string IDs (UUIDs)
-  public static async createReferralCode(userId: string): Promise<string> {
-    try {
-      // 1. First verify user exists
-      const user = await this.prisma.users.findUnique({
-        where: { id: userId } // No conversion needed for UUID
+    const normalizedId = validation.data;
+
+    // Check if user exists
+    const user = await prisma.users.findUnique({
+      where: { id: typeof normalizedId === 'number' ? normalizedId : undefined },
+      select: { id: true }
+    });
+
+    if (!user) {
+      throw new Error(`User with ID ${normalizedId} not found`);
+    }
+
+    // Generate unique referral code
+    let referralCode: string;
+    let attempts = 0;
+    
+    do {
+      referralCode = generateReferralCode(normalizedId);
+      const exists = await prisma.users.findFirst({
+        where: { referral_code: referralCode },
+        select: { id: true }
       });
+      if (!exists) break;
+      attempts++;
+    } while (attempts < 5);
 
-      if (!user) {
-        console.error(`User not found - ID: ${userId}`);
-        throw new Error(`User with ID ${userId} not found`);
-      }
-
-      // 2. Return existing code if present
-      if (user.referral_code) {
-        return user.referral_code;
-      }
-
-      // 3. Generate new unique code
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      while (attempts < maxAttempts) {
-        attempts++;
-        const code = this.generateRandomCode();
-
-        try {
-          const updatedUser = await this.prisma.$transaction(async (tx) => {
-            const existing = await tx.users.findFirst({
-              where: { referral_code: code },
-              select: { id: true }
-            });
-
-            if (existing) return null;
-
-            return await tx.users.update({
-              where: { id: userId }, // No conversion needed
-              data: { referral_code: code }
-            });
-          });
-
-          if (updatedUser) {
-            return code;
-          }
-        } catch (updateError) {
-          console.error('Update failed on attempt', attempts, updateError);
-        }
-      }
-
-      throw new Error('Failed to generate unique code after 10 attempts');
-    } catch (error) {
-      console.error('Error in createReferralCode:', error);
-      throw error;
+    if (attempts >= 5) {
+      throw new Error('Failed to generate unique referral code');
     }
-  }}
+
+    // Update user
+    // await prisma.users.update({
+    //   where: { id: typeof normalizedId === 'number' ? normalizedId : undefined },
+    //   data: { referral_code: referralCode },
+    // });
+
+    return referralCode;
+  } catch (error) {
+    console.error('Referral code creation failed:', error);
+    throw new Error(
+      error instanceof Error 
+        ? error.message 
+        : 'Unknown error during referral code creation'
+    );
+  }
+}

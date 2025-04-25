@@ -58,7 +58,7 @@ model Voucher {
 
 model Review {
   id         String   @id @default(uuid())
-  user_id    String
+  user_id    Int
   event_id   String
   message    String
   rating     Int
@@ -79,15 +79,15 @@ model Coupon {
 }
 
 model Users {
-  id              String        @id @default(uuid())
+  id              Int           @id @default(autoincrement())
   first_name      String
   last_name       String
   profile_picture String?
   password        String        @db.VarChar(255)
   email           String        @unique
-  referral_code   String        @unique @db.VarChar(30) // Unique code for each user
+  referral_code   String?       @unique @db.VarChar(30) // Unique code for each user
   referred_by     String?       @db.VarChar(30) // Code used by the user to refer others
-  user_points     Int
+  user_points     Int           @default(0) // Default role is customer
   roleId          Int?          @default(1) // Default role is customer
   is_verified     Boolean       @default(false)
   expiry_points   DateTime
@@ -102,14 +102,15 @@ model Users {
   referralsGiven    Referral[] @relation("ReferralsGiven")
   referralsReceived Referral[] @relation("ReferralsReceived")
 
-  @@map("users")
+  @@index([referred_by]) // aim to optimize search on referred_by
+  @@map("users") // aim to match the database table name
 }
 
 model Transaction {
   id             String            @id @default(uuid())
   status         TransactionStatus
   payment_date   DateTime
-  user_id        String
+  user_id        Int
   total_amount   Float
   payment_method String
   user           Users             @relation(fields: [user_id], references: [id])
@@ -123,8 +124,8 @@ model Role {
 
 model Referral {
   id                      Int            @id @default(autoincrement())
-  referred_by             String // User who gave referral
-  referred_user           String         @unique // New user who used referral (one per user)
+  referred_by             Int // User who gave referral
+  referred_user           Int            @unique // New user who used referral (one per user)
   referral_code_used      String         @db.VarChar(30) // Specific code used
   status                  RefferalStatus @default(pending) // pending, completed, expired
   referrer_points_awarded Int            @default(10000) // Fixed 10,000 points

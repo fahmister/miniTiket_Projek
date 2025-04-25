@@ -5,7 +5,8 @@ export interface IRegisterParam {
     password: string,
     first_name: string,
     last_name: string,
-    roleId : number
+    roleId : number,
+    referral_code: string
 }
 
 export interface ILoginParam {

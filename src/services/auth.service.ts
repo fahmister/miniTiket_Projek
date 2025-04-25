@@ -1,8 +1,8 @@
-import { Users } from "@prisma/client";
 import { IRegisterParam, ILoginParam } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { sign } from "jsonwebtoken";
+import { ReferralService } from "./referral.service";
 
 import { SECRET_KEY } from "../config";
 
@@ -47,7 +47,7 @@ async function FindUserByEmail(email: string) {
 // This async function takes a parameter of type IRegisterParam and returns a promise of type Users
 
 // Define a default role ID
-const defaultRoleId = 1; // Replace 1 with the actual default role ID from your database
+const defaultRoleId = 2; // Replace 1 with the actual default role ID from your database
 
 async function RegisterService(param: IRegisterParam) {
   try {
@@ -57,7 +57,7 @@ async function RegisterService(param: IRegisterParam) {
     
     if (isExist) throw new Error("Email is already registered");
 
-    await prisma.$transaction(async (t) => {
+    await prisma.$transaction(async (t: any) => {
       const salt = genSaltSync(10);
       const hashedPassword = await hash(param.password, salt);
       
@@ -68,10 +68,24 @@ async function RegisterService(param: IRegisterParam) {
       await prisma.role.createMany({
         data: [
           { id: 1, name: 'Customer' },
-          { id: 2, name: 'Event Organizer' }
+          { id: 2, name: 'Event' }
         ],
         skipDuplicates: true
       });
+
+    // Check if referral code exists if provided
+    let referredByUserId: string | undefined;
+    
+    if (param.referral_code) {
+      const referringUser = await prisma.users.findUnique({
+        where: { referral_code: param.referral_code }
+      });
+      
+      if (!referringUser) {
+        throw new Error('Invalid referral code');
+      }
+      referredByUserId = referringUser.id;
+    }
 
       let users = await t.users.create({
         data: {
@@ -83,8 +97,12 @@ async function RegisterService(param: IRegisterParam) {
           roleId: defaultRoleId, // Default role ID
           user_points: 0, // Default value for user_points
           expiry_points: new Date(), // Default value for expiry_points
+          referral_code: referredByUserId, // Use the provided referral code
         },
       });
+
+      // Generate a referral code for the new user
+      await ReferralService.createReferralCode(users.id);
 
       return users;
     });

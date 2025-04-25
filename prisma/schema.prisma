@@ -79,22 +79,30 @@ model Coupon {
 }
 
 model Users {
-  id                String        @id @default(uuid())
-  first_name        String
-  last_name         String
-  profile_picture   String?
-  password          String        @db.VarChar(255)
-  email             String        @unique
-  referral_code     String?       @unique @db.VarChar(30) // Unique code for each user
-  user_points       Int
-  roleId            Int?          @default(1) // Default role is customer
-  is_verified       Boolean       @default(false)
-  expiry_points     DateTime
-  reviews           Review[]
-  transactions      Transaction[]
-  role              Role?         @relation(fields: [roleId], references: [id]) // enum atau model
-  ReferralsGiven    Referral[]    @relation("ReferralsGiven")
-  ReferralsReceived Referral[]    @relation("ReferralsReceived")
+  id              String        @id @default(uuid())
+  first_name      String
+  last_name       String
+  profile_picture String?
+  password        String        @db.VarChar(255)
+  email           String        @unique
+  referral_code   String        @unique @db.VarChar(30) // Unique code for each user
+  referred_by     String?       @db.VarChar(30) // Code used by the user to refer others
+  user_points     Int
+  roleId          Int?          @default(1) // Default role is customer
+  is_verified     Boolean       @default(false)
+  expiry_points   DateTime
+  reviews         Review[]
+  transactions    Transaction[]
+  role            Role?         @relation(fields: [roleId], references: [id]) // enum atau model
+  // Users referred by this user
+  referredUsers   Users[]       @relation("Referral")
+  referredByUser  Users?        @relation("Referral", fields: [referred_by], references: [referral_code])
+
+  // Relations for referrals
+  referralsGiven    Referral[] @relation("ReferralsGiven")
+  referralsReceived Referral[] @relation("ReferralsReceived")
+
+  @@map("users")
 }
 
 model Transaction {

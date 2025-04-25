@@ -3,6 +3,7 @@ export interface IUserReqParam {
     first_name: string;
     last_name: string;
     roleId : number
+    referral_code: string; // Add the referral_code property
   }
   
   declare global {

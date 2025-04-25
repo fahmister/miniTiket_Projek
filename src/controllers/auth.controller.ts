@@ -22,6 +22,19 @@ async function RegisterController (req: Request, res: Response, next: NextFuncti
     }
 }
 
+async function getReferralCode (req: Request, res: Response, next: NextFunction) {
+    try {
+        const user = req.user as IUserReqParam;
+        console.log(user);
+        res.status(200).send({
+            message: "Success",
+            referral_code: user.referral_code
+        })
+    } catch (err) {
+        next(err);
+    }
+}
+
 async function LoginController (req: Request, res: Response, next: NextFunction) {
     try {
         const data = await LoginService(req.body);
@@ -51,4 +64,4 @@ async function UsersController (req: Request, res: Response, next: NextFunction)
 }
 
 // Exporting the controllers to be used in routers directory
-export { RegisterController, LoginController, UsersController }
+export { RegisterController, LoginController, UsersController, getReferralCode };

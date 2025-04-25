@@ -46,6 +46,9 @@ async function FindUserByEmail(email: string) {
 // Function to register a new user
 // This async function takes a parameter of type IRegisterParam and returns a promise of type Users
 
+// Define a default role ID
+const defaultRoleId = 1; // Replace 1 with the actual default role ID from your database
+
 async function RegisterService(param: IRegisterParam) {
   try {
     // validate email aleady registered
@@ -61,20 +64,29 @@ async function RegisterService(param: IRegisterParam) {
       // insert into user table in prisma database
       // (first_name, last_name, email, password, isverified) 
       // values(param.first_name, param.last_name, param.email, param.password, false)
-      let Users = await t.users.create({
+      
+      await prisma.role.createMany({
+        data: [
+          { id: 1, name: 'Customer' },
+          { id: 2, name: 'Event Organizer' }
+        ],
+        skipDuplicates: true
+      });
+
+      let users = await t.users.create({
         data: {
           first_name: param.first_name,
           last_name: param.last_name,
           email: param.email,
           password: hashedPassword,
           is_verified: false,
-          roleId: param.roleId,
+          roleId: defaultRoleId, // Default role ID
           user_points: 0, // Default value for user_points
           expiry_points: new Date(), // Default value for expiry_points
         },
       });
 
-      return Users;
+      return users;
     });
   } catch (err) {
     throw err; // Handle error

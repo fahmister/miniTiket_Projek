@@ -14,7 +14,7 @@ async function RegisterController (req: Request, res: Response, next: NextFuncti
         const data = await RegisterService(req.body);
 
         res.status(200).send({
-            message: "Register Berhasil",
+            message: "Register Successfully",
             data
         })
     } catch(err) {

@@ -7,6 +7,7 @@ export interface IRegisterParam {
     last_name: string,
     roleId : number,
     referral_code: string
+    referredByUserId?: string
 }
 
 export interface ILoginParam {

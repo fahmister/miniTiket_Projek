@@ -48,7 +48,7 @@ async function FindUserByEmail(email: string) {
 // This async function takes a parameter of type IRegisterParam and returns a promise of type Users
 
 // Define a default role ID
-const defaultRoleId = 2; // Replace 1 with the actual default role ID from your database
+const defaultRoleId = 1; // Replace 1 with the actual default role ID from your database
 
 async function RegisterService(param: IRegisterParam) {
   try {
@@ -100,7 +100,8 @@ async function RegisterService(param: IRegisterParam) {
           roleId: defaultRoleId, // Default role ID
           user_points: 0, // Default value for user_points
           expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry
-          referral_code: param.referral_code || ''
+          referral_code: param.referral_code || '',
+          referred_by: param.referredByUserId || null,
         },
       });
       

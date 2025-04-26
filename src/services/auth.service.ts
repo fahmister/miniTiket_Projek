@@ -2,11 +2,12 @@ import { IRegisterParam, ILoginParam,  } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { sign } from "jsonwebtoken";
-import { createReferralCode  } from '../services/referral.service';
+
 
 import { SECRET_KEY } from "../config";
 
-
+// Get all users from database via connection pool (prisma)
+// Other application from GetAll is to see the history of event created by EO
 async function GetAll() {
   try {
     return await prisma.users.findMany();
@@ -122,7 +123,6 @@ async function RegisterService(param: IRegisterParam) {
     }); // Closing parenthesis for prisma.$transaction
     }); // Add missing parenthesis for outer prisma.$transaction
   } catch (error) {
-    console.error('Registration failed:', error);
     throw new Error(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -134,18 +134,21 @@ async function LoginService(param: ILoginParam) {
 
     if (!users) throw new Error("Email is not registered");
 
+    // compare is used to compare the password from user input with the hashed password in the database
     const checkPass = await compare(param.password, users.password);
 
     if (!checkPass) throw new Error("Incorrect password");
 
+    // payload is the data that will be included in the JWT token
     const payload = {
       email: users.email,
       first_name: users.first_name,
       last_name: users.last_name,
-      // roleID: users.roleId,
-      roleName: users.role ? users.role.name : null,
+      roleName: users.role.name
     }
 
+    // sign is used to create a JWT token with the user's informatio
+    // The token is signed with a secret key and has an expiration time of 1 hour
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});
 
     return {user: payload, token};

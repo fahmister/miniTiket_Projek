@@ -85,15 +85,15 @@ model Users {
   profile_picture String?
   password        String        @db.VarChar(255)
   email           String        @unique
-  referral_code   String?       @unique @db.VarChar(30) // Unique code for each user
+  referral_code   String        @unique @db.VarChar(30) // Unique code for each user
   referred_by     String?       @db.VarChar(30) // Code used by the user to refer others
-  user_points     Int           @default(0) // Default role is customer
+  user_points     Int           @default(0) // Default userpoint
   roleId          Int           @default(1) // Default role is customer
   is_verified     Boolean       @default(false)
   expiry_points   DateTime
   reviews         Review[]
   transactions    Transaction[]
-  role            Role?         @relation(fields: [roleId], references: [id]) // enum atau model
+  role            Role          @relation(fields: [roleId], references: [id]) // enum atau model
   // Users referred by this user
   referredUsers   Users[]       @relation("Referral")
   referredByUser  Users?        @relation("Referral", fields: [referred_by], references: [referral_code])

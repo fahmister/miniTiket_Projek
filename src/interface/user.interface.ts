@@ -6,7 +6,7 @@ export interface IRegisterParam {
     first_name: string,
     last_name: string,
     roleId : number,
-    referral_code: string
+    referral_code: string | undefined,
     referredByUserId?: string
 }
 

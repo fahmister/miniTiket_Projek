@@ -40,7 +40,7 @@ async function LoginController (req: Request, res: Response, next: NextFunction)
         const data = await LoginService(req.body);
 
         res.status(200).cookie("access_token", data.token).send({
-            message: "Login Berhasil",
+            message: "Login Successfully",
             user: data.user
         });
     } catch(err) {

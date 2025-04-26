@@ -88,7 +88,7 @@ model Users {
   referral_code   String?       @unique @db.VarChar(30) // Unique code for each user
   referred_by     String?       @db.VarChar(30) // Code used by the user to refer others
   user_points     Int           @default(0) // Default role is customer
-  roleId          Int?          @default(1) // Default role is customer
+  roleId          Int           @default(1) // Default role is customer
   is_verified     Boolean       @default(false)
   expiry_points   DateTime
   reviews         Review[]

@@ -22,20 +22,23 @@ async function FindUserByEmail(email: string) {
   try {
     // find First is used to find the first record that matches the given criteria
     const users = await prisma.users.findFirst({
+      // select to get the specific fields to return
       select: {
         email: true,
         first_name: true,
         last_name: true,
         password: true,
         roleId: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
       },
       where: {
         email,
       },
-      // lines 23 & 31-33 same as this query: select * from user where email = email limit 1
-      // include: {
-      //   role: true
-      // }
+      // lines 24 & 37-39 same as this query: select * from user where email = email limit 1
     });
 
     return users;
@@ -52,12 +55,13 @@ const defaultRoleId = 1; // Replace 1 with the actual default role ID from your 
 
 async function RegisterService(param: IRegisterParam) {
   try {
-    // validate email aleady registered
+    // validate email already registered
     // select * from user where email = email limit 1
     const isExist = await FindUserByEmail(param.email);
     
     if (isExist) throw new Error("Email is already registered");
 
+    // hash the password using bcrypt (hash, getSaltSync)
     await prisma.$transaction(async (t: any) => {
       const salt = genSaltSync(10);
       const hashedPassword = await hash(param.password, salt);
@@ -75,6 +79,7 @@ async function RegisterService(param: IRegisterParam) {
       });
 
     // Check if referral code exists if provided
+    // User can provide a referral code when account registering or leave it empty
     let referredByUserId: string | undefined;
     
     if (param.referral_code) {
@@ -97,13 +102,14 @@ async function RegisterService(param: IRegisterParam) {
           email: param.email,
           password: hashedPassword,
           is_verified: false,
-          roleId: defaultRoleId, // Default role ID
+          roleId: defaultRoleId ? param.roleId : defaultRoleId, // Default role ID or User can provide a custom one (2)
           user_points: 0, // Default value for user_points
           expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry
           referral_code: param.referral_code || '',
           referred_by: param.referredByUserId || null,
         },
       });
+      // lines 93-104 insert into user table in prisma database
       
       // 2. Generate a proper referral code and update
       const finalReferralCode = `TIX-${user.id.toString().padStart(6, '0')}`;
@@ -126,17 +132,18 @@ async function LoginService(param: ILoginParam) {
   try {
     const users = await FindUserByEmail(param.email);
 
-    if (!users) throw new Error("Email tidak terdaftar");
+    if (!users) throw new Error("Email is not registered");
 
     const checkPass = await compare(param.password, users.password);
 
-    if (!checkPass) throw new Error("Password Salah");
+    if (!checkPass) throw new Error("Incorrect password");
 
     const payload = {
       email: users.email,
       first_name: users.first_name,
       last_name: users.last_name,
-      roleID: users.roleId
+      // roleID: users.roleId,
+      roleName: users.role ? users.role.name : null,
     }
 
     const token = sign(payload, String(SECRET_KEY), { expiresIn: "1h"});

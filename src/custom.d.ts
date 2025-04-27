@@ -3,11 +3,12 @@ export interface IUserReqParam {
     email: string;
     first_name: string;
     last_name: string;
-    roleId : number
-    referral_code: string; // Add the referral_code property
+    roleName: string;
   }
   
   declare global {
+    // namespace purpose is to extend the Express Request object
+    // to include the user property
     namespace Express {
       export interface Request {
         user?: IUserReqParam;

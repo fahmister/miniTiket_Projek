@@ -65,6 +65,8 @@ model Review {
   created_at DateTime @default(now())
   event      Event    @relation(fields: [event_id], references: [id])
   user       Users    @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, event_id]) // Prevent duplicate reviews per user per event
 }
 
 model Coupon {

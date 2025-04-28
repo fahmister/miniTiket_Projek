@@ -1,6 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import { PORT } from "./config";
 import AuthRouter from "./routers/auth.router";
+import path from "path";
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -23,7 +24,9 @@ app.get(
   );
 
 // This router handles all authentication-related routes /auth/register, /auth/login
-app.use("/auth", AuthRouter)
+app.use("/auth", AuthRouter);
+// router for static files (avatar) in public folder
+app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 
 // listening to the port specified in the environment variable or default to 8080
 // This will start the server and listen for incoming requests on the specified port

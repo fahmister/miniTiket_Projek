@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { RegisterService, LoginService, GetAll } from "../services/auth.service";
+import { RegisterService, LoginService, GetAll, UpdateUserService, UpdateUserService2 } from "../services/auth.service";
 import { createReferralCode } from '../services/referral.service';
 import { IUserReqParam } from "../custom";
 
@@ -48,6 +48,47 @@ async function LoginController (req: Request, res: Response, next: NextFunction)
     }
 }
 
+async function UpdateProfileController(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { file } = req;
+      const { email } = req.user as IUserReqParam;
+      // console.log(file);
+      if (!file) throw new Error("file not found");
+      await UpdateUserService(file, email);
+  
+      res.status(200).send({
+        message: "Profile update successfully",
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async function UpdateProfileController2(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { file } = req;
+      const { email } = req.user as IUserReqParam;
+      // console.log(file);
+      if (!file) throw new Error("file not found");
+      await UpdateUserService2(file, email);
+  
+      res.status(200).send({
+        message: "Profile update successfully",
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+  
+
 async function UsersController (req: Request, res: Response, next: NextFunction) {
     try {
         const user = req.user as IUserReqParam;
@@ -55,7 +96,7 @@ async function UsersController (req: Request, res: Response, next: NextFunction)
         const data = await GetAll();
 
         res.status(200).send({
-            message: "Berhasil",
+            message: "Successfully get all users",
             users: data
         })
     } catch (err) {
@@ -64,4 +105,4 @@ async function UsersController (req: Request, res: Response, next: NextFunction)
 }
 
 // Exporting the controllers to be used in routers directory
-export { RegisterController, LoginController, UsersController, ReferralController };
+export { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2, ReferralController };

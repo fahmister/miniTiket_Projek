@@ -14,3 +14,8 @@ export interface ILoginParam {
     email: string,
     password: string
 }
+
+export interface IUpdateUser{
+    file: Express.Multer.File,
+    email: string
+}

@@ -2,7 +2,7 @@ import { IRegisterParam, ILoginParam,  } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { sign } from "jsonwebtoken";
-
+import { cloudinaryUpload, cloudinaryRemove } from "../utils/cloudinary";
 
 import { SECRET_KEY } from "../config";
 
@@ -157,5 +157,81 @@ async function LoginService(param: ILoginParam) {
   }
 }
 
+async function UpdateUserService(file: Express.Multer.File, email: string) {
+  let url = "";
+  try {
+    const checkUser = await FindUserByEmail(email);
+
+    if (!checkUser) throw new Error("User not found");
+
+    await prisma.$transaction(async (t) => {
+      const { secure_url } = await cloudinaryUpload(file);
+      url = secure_url;
+      const splitUrl = secure_url.split("/");
+      // splitUrl.length - 1 to get the last part of the URL
+      const fileName = splitUrl[splitUrl.length - 1];
+
+      // where is used to find the user by email and update the profile_picture field with the fileName
+      await t.users.update({
+        where: {
+          email: checkUser.email,
+        },
+        data: {
+          profile_picture: fileName,
+        },
+      });
+    });
+  } catch (err) {
+    await cloudinaryRemove(url);
+    throw err;
+  }
+}
+
+async function UpdateUserService2(file: Express.Multer.File, email: string) {
+  try {
+    const checkUser = await FindUserByEmail(email);
+
+    if (!checkUser) throw new Error("User not found");
+
+    await prisma.$transaction(async (t) => {
+      await t.users.update({
+        where: {
+          email: checkUser.email,
+        },
+        data: {
+          profile_picture: file.filename,
+        },
+      });
+    });
+  } catch (err) {
+    throw err;
+  }
+}
+
+async function VerifyUserService() {
+  try {
+    console.log("this function is running");
+    await prisma.$transaction(async (t) => {
+      await t.users.updateMany({
+        where: {
+          is_verified: false
+        },
+        data: {
+          is_verified: true,
+        },
+      });
+    });
+  } catch (err) {
+    throw err;
+  }
+}
+
 // Exporting the functions to be used in controllers directory
-export { RegisterService, LoginService, GetAll };
+export { 
+  RegisterService, 
+  LoginService, 
+  GetAll,
+  UpdateUserService,
+  UpdateUserService2,
+  VerifyUserService
+  };

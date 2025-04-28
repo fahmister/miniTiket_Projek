@@ -7,10 +7,12 @@ export function Multer(
   filePrefix?: string,
   folderName?: string
 ) {
+    // defaultDir is the default directory (public) for the file to be saved in server
     const defaultDir = path.join(__dirname, "../../public");
     
    // configuring multer with the storage type and file name
    const storage = type === "memoryStorage" ? multer.memoryStorage() : multer.diskStorage({
+    // location for the file to be saved in server
     destination: (
         req: Request,
         file: Express.Multer.File,
@@ -18,6 +20,7 @@ export function Multer(
     ) => {
         cb(null, folderName ? path.join(defaultDir, folderName) : defaultDir)
     },
+    // / file name for the file to be saved in server
     filename: (
         req: Request,
         file: Express.Multer.File,

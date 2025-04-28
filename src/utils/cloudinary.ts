@@ -25,9 +25,12 @@ export function cloudinaryUpload(file: Express.Multer.File): Promise<UploadApiRe
   });
 }
 
+// / Function to extract the public ID from the secure URL
 export function extractPublicIdFromUrl(url: string) {
     try {
+        // Splitting the URL to get the public ID
         const urlParts = url.split("/");
+        // Splitting without jpeg extension from the public ID
         const publicId = urlParts[urlParts.length - 1].split(".")[0];
 
         return publicId;
@@ -35,7 +38,7 @@ export function extractPublicIdFromUrl(url: string) {
         throw err;
     }
 }
-
+// Function to remove a file from cloudinary
 export async function cloudinaryRemove(secure_url: string) {
     try {
         const publicId = extractPublicIdFromUrl(secure_url);

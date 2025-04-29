@@ -32,6 +32,10 @@ enum RefferalStatus {
 model Event {
   id          String    @id @default(uuid())
   name        String
+  category    String
+  imager_url  String
+  user_id     Int
+  users       Users     @relation(fields: [user_id], references: [id])
   location    String
   start_date  DateTime
   end_date    DateTime
@@ -106,6 +110,7 @@ model Users {
 
   @@index([referred_by]) // aim to optimize search on referred_by
   @@map("users") // aim to match the database table name
+  Event Event[]
 }
 
 model Transaction {

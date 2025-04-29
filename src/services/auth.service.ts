@@ -3,6 +3,14 @@ import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { sign } from "jsonwebtoken";
 import { cloudinaryUpload, cloudinaryRemove } from "../utils/cloudinary";
+import { Transporter } from "../utils/nodemailer";
+
+// Handlebars template engine
+import Handlebars from "handlebars";
+// path to join path with the file name
+import path from "path";
+// fs to read and manipulate files
+import fs from "fs";
 
 import { SECRET_KEY } from "../config";
 
@@ -119,6 +127,26 @@ async function RegisterService(param: IRegisterParam) {
         data: { referral_code: finalReferralCode },
       });
 
+      // path to join the template file with the path
+      const templatePath = path.join(
+        __dirname, 
+        "../templates",
+        "register-template.hbs"
+      );
+
+      const templateSource = fs.readFileSync(templatePath, "utf-8");
+      // Handlebars.compile is a function that compiles the template and generates and read the HTML file
+      const compiledTemplate = Handlebars.compile(templateSource);
+      const html = compiledTemplate({email: param.email})
+
+      // Send email after user register its account
+      await Transporter.sendMail ({
+        from: "EOHelper",
+        to: param.email,
+        subject: "Welcome",
+        html
+      });
+
       return user;
     }); // Closing parenthesis for prisma.$transaction
     }); // Add missing parenthesis for outer prisma.$transaction
@@ -126,8 +154,6 @@ async function RegisterService(param: IRegisterParam) {
     throw new Error(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
-
-
 async function LoginService(param: ILoginParam) {
   try {
     const users = await FindUserByEmail(param.email);

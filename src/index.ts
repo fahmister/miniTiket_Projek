@@ -10,7 +10,7 @@ const app: Application = express();
 // It parses incoming requests with JSON payloads and is based on body-parser.
 app.use(express.json());
 
-// lines 14 to 19 is a middleware function that logs the request method and URL to the console
+// lines 15 to 20 is a middleware function that logs the request method and URL to the console
 // named as middleware for logging requests because handler position located at center of the middleware stack
 app.get(
     "/api",

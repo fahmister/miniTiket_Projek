@@ -108,7 +108,7 @@ async function RegisterService(param: IRegisterParam) {
       referringUserId = referringUser.id.toString();
     }
     
-      // 1. Create user WITH referral code in the same operation
+      // Create user WITH referral code in the same operation
       const user = await tx.users.create({
         data: {
           first_name: param.first_name,
@@ -131,82 +131,87 @@ async function RegisterService(param: IRegisterParam) {
         where: { id: user.id },
         data: { referral_code: finalReferralCode },
       });
-// If referral was used, reward both users according to different conditions
-if (referringUserId) {
-  // 1. Reward the new registrant (referred user) with a discount coupon
-  await tx.coupon.create({
-    data: {
-      user_id: user.id,
-      code: `WELCOME-${Math.random().toString(36).substring(2, 10).toUpperCase()}`, // Generate random coupon code
-      discount: 10 as number as Percentage, // 10% discount
-      validUntil: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months validity
-      isUsed: false,
-      description: 'Sign-up bonus from referral program'
-    }
-  });
 
-  // 2. Reward the referring user with 10,000 points
-  await tx.users.update({
+
+    // If referral was used, reward both users according to different conditions
+    if (referringUserId) {
+    // 1. Reward the new registrant (referred user) with a discount coupon
+    await tx.coupon.create({
+      data: {
+        user_id: user.id,
+        code: `WELCOME-${Math.random().toString(36).substring(2, 10).toUpperCase()}`, // Generate random coupon code
+        discount_percentage: 10, // 10% discount
+        expiry_date: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months validity
+        is_used: false,
+        description: 'Register reward from referral program',
+        name: 'Welcome Coupon', // Add a name for the coupon
+        max_usage: 1, // Set maximum usage for the coupon
+        current_usage: 0 // Set current usage to 0
+      }
+    });
+
+      // 2. Reward the referring user with 10,000 points
+    await tx.users.update({
     where: { id: parseInt(referringUserId, 10) },
     data: { 
       user_points: { increment: 10000 } // 10,000 points for referrer
-    }
-  });
-
-  // 3. Create transaction records for both actions
-  await tx.pointTransactions.createMany({
-    data: [
-      {
-        userId: user.id,
-        amount: 0, // No points for new user
-        type: 'REFERRAL_COUPON',
-        description: 'Received welcome discount coupon'
-      },
-      {
-        userId: referringUserId,
-        amount: 10000,
-        type: 'REFERRAL_BONUS',
-        description: `Referral bonus for ${user.email}`
       }
-    ]
-  });
-
-  // 4. Send notification to the referring user about their reward
-  const referringUser = await tx.users.findUnique({
-    where: { id: referringUserId },
-    select: { email: true, first_name: true }
-  });
-
-  if (referringUser) {
-    const templatePath = path.join(
-      __dirname,
-      "../templates",
-      "referral-reward-notification.hbs"
-    );
-    const templateSource = fs.readFileSync(templatePath, "utf-8");
-    const compiledTemplate = Handlebars.compile(templateSource);
-    const html = compiledTemplate({
-      name: referringUser.first_name,
-      points: 10000,
-      referredEmail: user.email
     });
 
-    await Transporter.sendMail({
-      from: "EOHelper Rewards",
-      to: referringUser.email,
-      subject: "You've earned referral points!",
-      html
+    // 3. Create transaction records for both actions
+    await tx.pointTransactions.createMany({
+      data: [
+        {
+          userId: user.id,
+          amount: 0, // No points for new user
+          type: 'REFERRAL_COUPON',
+          description: 'Received welcome discount coupon'
+        },
+        {
+          userId: parseInt(referringUserId, 10),
+          amount: 10000,
+          type: 'REFERRAL_BONUS',
+          description: `Referral bonus for ${user.email}`
+        }
+      ]
     });
+
+    // 4. Send notification to the referring user about their reward
+    const referringUser = await tx.users.findUnique({
+      where: { id: parseInt(referringUserId, 10) },
+      select: { email: true, first_name: true }
+    });
+
+    if (referringUser) {
+      const templatePath = path.join(
+        __dirname,
+        "../templates",
+        "referral-reward-notification.hbs"
+      );
+      const templateSource = fs.readFileSync(templatePath, "utf-8");
+      const compiledTemplate = Handlebars.compile(templateSource);
+      const html = compiledTemplate({
+        name: referringUser.first_name,
+        points: 10000,
+        referredEmail: user.email
+      });
+
+      await Transporter.sendMail({
+        from: "EOHelper Rewards",
+        to: referringUser.email,
+        subject: "You've earned referral points!",
+        html
+      });
+    }
   }
-}
 
-      // Generate verification token
-      // payload is the data that will be included in the JWT token
+    // 5. Generate verification token
+    // payload is the data that will be included in the JWT token
       const payload = {email: user.email,};
       const token = sign(payload, String(SECRET_KEY), { expiresIn: "15m"});
 
-      // Send verification email
-      // path to join the template file with the path
+    // Send verification email
+    // path to join the template file with the path
       const templatePath = path.join(
         __dirname, 
         "../templates",

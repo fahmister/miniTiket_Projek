@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { RegisterService, LoginService, GetAll, UpdateUserService, UpdateUserService2 } from "../services/auth.service";
-import { createReferralCode } from '../services/referral.service';
 import { IUserReqParam } from "../custom";
 
 // RegisterController function to handle user registration
@@ -17,19 +16,6 @@ async function RegisterController (req: Request, res: Response, next: NextFuncti
             message: "Register Successfully",
             data
         })
-    } catch(err) {
-        next(err)
-    }
-}
-
-async function ReferralController(req: Request, res: Response, next: NextFunction) {
-    try {
-      if (!req.user) {
-          throw new Error("User is not authenticated");
-      }
-      const userId = req.user.id; // Make sure this is the correct user ID
-      const referralCode = await createReferralCode(userId.toString());
-      res.json({ success: true, referralCode });
     } catch(err) {
         next(err)
     }
@@ -105,4 +91,4 @@ async function UsersController (req: Request, res: Response, next: NextFunction)
 }
 
 // Exporting the controllers to be used in routers directory
-export { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2, ReferralController };
+export { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2 };

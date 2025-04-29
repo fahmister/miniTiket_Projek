@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { RegisterController, LoginController, UsersController, ReferralController, UpdateProfileController, UpdateProfileController2 } from "../controllers/auth.controller";
+import { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2 } from "../controllers/auth.controller";
 import { VerifyToken, EOGuard } from "../middlewares/auth.middleware";
 import ReqValidator from "../middlewares/validator.middleware";
 import { registerSchema, loginSchema } from "../schemas/user.schema";
@@ -9,8 +9,6 @@ const router = Router();
 
 // router for register
 router.post("/register", ReqValidator(registerSchema), RegisterController);
-
-router.get("/referral-code", ReferralController);
 
 // router for login
 router.post("/login", ReqValidator(loginSchema), LoginController);

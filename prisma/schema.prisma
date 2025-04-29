@@ -8,11 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// enum UserRole {
-//   customer
-//   event_organizer
-// }
-
 enum TransactionStatus {
   waiting_for_payment
   waiting_for_admin
@@ -74,43 +69,49 @@ model Review {
 }
 
 model Coupon {
-  id            String     @id @default(uuid())
-  discount      Float
-  name          String
-  expiry_date   DateTime
-  code          String     @unique
-  max_usage     Int
-  current_usage Int
-  Referral      Referral[]
+  id                  String     @id @default(uuid())
+  user_id             Int
+  discount_percentage Int
+  name                String
+  expiry_date         DateTime
+  code                String     @unique
+  max_usage           Int
+  current_usage       Int
+  is_used             Boolean    @default(false)
+  description         String?
+  user                Users      @relation(fields: [user_id], references: [id])
+  Referral            Referral[]
 }
 
 model Users {
-  id              Int           @id @default(autoincrement())
-  first_name      String
-  last_name       String
-  profile_picture String?
-  password        String        @db.VarChar(255)
-  email           String        @unique
-  referral_code   String        @unique @db.VarChar(30) // Unique code for each user
-  referred_by     String?       @db.VarChar(30) // Code used by the user to refer others
-  user_points     Int           @default(0) // Default userpoint
-  roleId          Int           @default(1) // Default role is customer
-  is_verified     Boolean       @default(false)
-  expiry_points   DateTime
-  reviews         Review[]
-  transactions    Transaction[]
-  role            Role          @relation(fields: [roleId], references: [id]) // enum atau model
+  id               Int           @id @default(autoincrement())
+  first_name       String
+  last_name        String
+  profile_picture  String?
+  password         String        @db.VarChar(255)
+  email            String        @unique
+  referral_code    String        @unique @db.VarChar(30) // Unique code for each user
+  referred_by      String?       @db.VarChar(30) // Code used by the user to refer others
+  user_points      Int           @default(0) // Default userpoint
+  roleId           Int           @default(1) // Default role is customer
+  is_verified      Boolean       @default(false)
+  expiry_points    DateTime
+  reviews          Review[]
+  transactions     Transaction[]
+  discount_coupons Coupon[]
+  role             Role          @relation(fields: [roleId], references: [id]) // enum atau model
   // Users referred by this user
-  referredUsers   Users[]       @relation("Referral")
-  referredByUser  Users?        @relation("Referral", fields: [referred_by], references: [referral_code])
+  referredUsers    Users[]       @relation("Referral")
+  referredByUser   Users?        @relation("Referral", fields: [referred_by], references: [referral_code])
 
   // Relations for referrals
-  referralsGiven    Referral[] @relation("ReferralsGiven")
-  referralsReceived Referral[] @relation("ReferralsReceived")
+  referralsGiven    Referral[]          @relation("ReferralsGiven")
+  referralsReceived Referral[]          @relation("ReferralsReceived")
+  Event             Event[]
+  pointTransactions pointTransactions[]
 
   @@index([referred_by]) // aim to optimize search on referred_by
   @@map("users") // aim to match the database table name
-  Event Event[]
 }
 
 model Transaction {
@@ -121,6 +122,15 @@ model Transaction {
   total_amount   Float
   payment_method String
   user           Users             @relation(fields: [user_id], references: [id])
+}
+
+model pointTransactions {
+  id          Int    @id @default(autoincrement())
+  userId      Int
+  amount      Int
+  type        String
+  description String
+  user        Users  @relation(fields: [userId], references: [id])
 }
 
 model Role {

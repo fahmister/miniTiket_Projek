@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { RegisterService, LoginService, GetAll, UpdateUserService, UpdateUserService2 } from "../services/auth.service";
 import { IUserReqParam } from "../custom";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // RegisterController function to handle user registration
 // It takes the request, response, and next function as parameters
@@ -75,7 +78,11 @@ async function UpdateProfileController(
   }
   
 
-async function UsersController (req: Request, res: Response, next: NextFunction) {
+async function UsersController (
+  req: Request, 
+  res: Response, 
+  next: NextFunction
+) {
     try {
         const user = req.user as IUserReqParam;
         console.log(user);
@@ -91,4 +98,4 @@ async function UsersController (req: Request, res: Response, next: NextFunction)
 }
 
 // Exporting the controllers to be used in routers directory
-export { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2 };
+export { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2};

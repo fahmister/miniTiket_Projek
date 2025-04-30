@@ -6,7 +6,7 @@ export interface IRegisterParam {
   email: string;
   password: string;
   referral_code?: string;
-  referredByUserId?: string;
+  referred_by?: string;
   roleId?: number;
   id?: string; // Add this property to fix the issue
 }

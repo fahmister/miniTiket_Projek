@@ -69,16 +69,17 @@ model Review {
 }
 
 model Coupon {
-  id                  String     @id @default(uuid())
+  id                  Int        @id @default(autoincrement())
   user_id             Int
-  discount_percentage Int
-  name                String
-  expiry_date         DateTime
   code                String     @unique
-  max_usage           Int
-  current_usage       Int
+  discount_percentage Int
+  expiry_date         DateTime
   is_used             Boolean    @default(false)
   description         String?
+  name                String
+  max_usage           Int
+  current_usage       Int
+  creatAt             Int
   user                Users      @relation(fields: [user_id], references: [id])
   Referral            Referral[]
 }
@@ -125,12 +126,13 @@ model Transaction {
 }
 
 model pointTransactions {
-  id          Int    @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   userId      Int
   amount      Int
   type        String
-  description String
-  user        Users  @relation(fields: [userId], references: [id])
+  description String?
+  user        Users    @relation(fields: [userId], references: [id])
+  CreatedAt   DateTime @default(now())
 }
 
 model Role {
@@ -146,7 +148,7 @@ model Referral {
   referral_code_used      String         @db.VarChar(30) // Specific code used
   status                  RefferalStatus @default(pending) // pending, completed, expired
   referrer_points_awarded Int            @default(10000) // Fixed 10,000 points
-  referral_coupon_id      String? // Discount coupon given to new user
+  referral_coupon_id      Int // Discount coupon given to new user
   created_at              DateTime       @default(now())
   completed_at            DateTime?
 

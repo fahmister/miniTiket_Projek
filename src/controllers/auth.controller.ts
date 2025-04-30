@@ -45,7 +45,6 @@ async function UpdateProfileController(
     try {
       const { file } = req;
       const { email } = req.user as IUserReqParam;
-      // console.log(file);
       if (!file) throw new Error("file not found");
       await UpdateUserService(file, email);
   

@@ -28,9 +28,9 @@ model Event {
   id          String    @id @default(uuid())
   name        String
   category    String
-  imager_url  String
+  image_url   String?
   user_id     Int
-  users       Users     @relation(fields: [user_id], references: [id])
+  user        Users     @relation(fields: [user_id], references: [id])
   location    String
   start_date  DateTime
   end_date    DateTime

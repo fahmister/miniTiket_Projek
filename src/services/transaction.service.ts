@@ -86,7 +86,8 @@ export async function createTransaction(
         throw new Error("Coupon sudah mencapai batas penggunaan");
       }
 
-      total -= coupon.discount;
+      total -= coupon.discount_percentage / 100 * total;
+      total = Math.max(total, 0); // Pastikan total tidak negatif
 
       // Update penggunaan coupon
       await tx.coupon.update({

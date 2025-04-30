@@ -2,6 +2,7 @@ import express, { Application, Request, Response, NextFunction } from "express";
 import { PORT } from "./config";
 import AuthRouter from "./routers/auth.router";
 import path from "path";
+import EventRouter from './routers/event.router'; // Pastikan path benar
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -23,6 +24,9 @@ app.get(
     }
   );
 
+// Pasang router setelah express.json()
+app.use(express.json());
+app.use('/events', EventRouter);
 // This router handles all authentication-related routes /auth/register, /auth/login
 app.use("/auth", AuthRouter);
 // router for static files (avatar) in public folder

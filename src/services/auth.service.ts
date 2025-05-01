@@ -1,10 +1,9 @@
 import { IRegisterParam, ILoginParam,  } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
-import { sign } from "jsonwebtoken";
 import { cloudinaryUpload, cloudinaryRemove } from "../utils/cloudinary";
 import { Transporter } from "../utils/nodemailer";
-import { verify, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
+import { sign, verify, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
 import { CouponCreation } from "./coupon.service";
 
 // Handlebars template engine

@@ -38,6 +38,7 @@ async function FindUserByEmail(email: string) {
     const users = await prisma.users.findFirst({
       // select to get the specific fields to return
       select: {
+        id: true,
         email: true,
         first_name: true,
         last_name: true,
@@ -308,6 +309,7 @@ async function LoginService(param: ILoginParam) {
 
     // payload is the data that will be included in the JWT token
     const payload = {
+      id: users.id,
       email: users.email,
       first_name: users.first_name,
       last_name: users.last_name,

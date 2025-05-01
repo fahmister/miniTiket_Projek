@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { RegisterService, LoginService, GetAll, UpdateUserService, UpdateUserService2 } from "../services/auth.service";
 import { IUserReqParam } from "../custom";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 // RegisterController function to handle user registration
 // It takes the request, response, and next function as parameters
@@ -75,7 +72,6 @@ async function UpdateProfileController(
       next(err);
     }
   }
-  
 
 async function UsersController (
   req: Request, 

@@ -3,6 +3,7 @@ import { PORT } from "./config";
 import AuthRouter from "./routers/auth.router";
 import path from "path";
 import EventRouter from './routers/event.router'; // Pastikan path benar
+import CouponRouter from './routers/coupon.router'; // Pastikan path benar
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -26,11 +27,13 @@ app.get(
 
 // Pasang router setelah express.json()
 app.use(express.json());
-app.use('/events', EventRouter);
+app.use("/events", EventRouter);
 // This router handles all authentication-related routes /auth/register, /auth/login
 app.use("/auth", AuthRouter);
 // router for static files (avatar) in public folder
 app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
+// router test service coupon and email notificationq
+app.use("/coupon", CouponRouter)
 
 // listening to the port specified in the environment variable or default to 8080
 // This will start the server and listen for incoming requests on the specified port

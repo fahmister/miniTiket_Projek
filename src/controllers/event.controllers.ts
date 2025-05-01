@@ -39,16 +39,56 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
 
 export async function getEvents(req: Request, res: Response, next: NextFunction) {
   try {
+    const { category, location, search } = req.query;
+
     const events = await prisma.event.findMany({
-      include: {
-        user: true,
+      where: {
+        AND: [
+          { category: category?.toString() || undefined },
+          { location: location?.toString() || undefined },
+          {
+            OR: [
+              { name: { contains: search?.toString() || "" } },
+              { description: { contains: search?.toString() || "" } }
+            ]
+          }
+        ]
       },
+      include: {
+        vouchers: true,
+        user: {
+          select: { first_name: true, last_name: true }
+        }
+      }
     });
 
-    res.status(200).send({
-      message: "Get All Events Successfully",
-      data: events,
+    res.status(200).json(events);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getEventDetails(req: Request, res: Response, next: NextFunction) {
+  try {
+    const eventId = req.params.id;
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        vouchers: true,
+        reviews: {
+          include: {
+            user: {
+              select: { first_name: true, profile_picture: true }
+            }
+          }
+        }
+      }
     });
+
+    if (!event) throw new Error("Event not found");
+    
+    res.status(200).json(event);
   } catch (err) {
     next(err);
   }

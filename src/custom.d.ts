@@ -15,3 +15,28 @@ export interface IUserReqParam {
       }
     }
   }  
+
+export interface IEventReqParam {
+    id:          string,    
+    name:        string,
+    category:    string,
+    image_url:   string?,
+    location:    string,
+    start_date:  Date,
+    end_date:    Date,
+    seats:       number
+    organizer:   string
+    price:       number
+    description: string
+    created_at:  Date 
+  }
+  
+  declare global {
+    // namespace purpose is to extend the Express Request object
+    // to include the event property
+    namespace Express {
+      export interface Request {
+        user?: IEventReqParam;
+      }
+    }
+  }  

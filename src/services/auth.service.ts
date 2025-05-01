@@ -76,7 +76,7 @@ async function RegisterService(param: IRegisterParam) {
     await prisma.role.createMany({
       data: [
         { id: 1, name: 'Customer' },
-        { id: 2, name: 'Event' }
+        { id: 2, name: 'Event Organizer' }
       ],
       skipDuplicates: true
     });
@@ -148,7 +148,7 @@ async function RegisterService(param: IRegisterParam) {
         current_usage: 0, // Set current usage to 0
         creatAt: new Date().getTime() // Add the required creatAt field with the current timestamp
       }
-    });
+    })
 
     // For referring user - add points with 10,000 points
     await tx.users.update({

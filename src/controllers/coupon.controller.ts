@@ -4,7 +4,8 @@ import { CouponCreation } from "../services/coupon.service";
 async function CouponController(req: Request, res: Response, next: NextFunction) {
     try {
         const user = req.user as { id: number };
-        const coupon = await CouponCreation(user.id, req.body);
+        // Ensure that req.body contains the necessary fields for coupon creation
+        const coupon = await CouponCreation({ ...req.body, userId: user.id });
         res.status(200).send({
             message: "Coupon created successfully",
             data: coupon,

@@ -30,7 +30,7 @@ model Event {
   category    String
   image_url   String?
   user_id     Int
-  user        Users      @relation(fields: [user_id], references: [id])
+  user        Users     @relation(fields: [user_id], references: [id])
   location    String
   start_date  DateTime
   end_date    DateTime
@@ -78,8 +78,8 @@ model Coupon {
   description         String?
   name                String
   max_usage           Int
-  current_usage       Int
-  creatAt             Int
+  current_usage       Int        @default(0)
+  creatAt             DateTime   @default(now())
   user                Users      @relation(fields: [user_id], references: [id])
   Referral            Referral[]
 }
@@ -109,7 +109,7 @@ model Users {
   referralsGiven    Referral[]          @relation("ReferralsGiven")
   referralsReceived Referral[]          @relation("ReferralsReceived")
   Event             Event[]
-  pointTransactions pointTransactions[]
+  PointTransactions PointTransactions[]
 
   @@index([referred_by]) // aim to optimize search on referred_by
   @@map("users") // aim to match the database table name
@@ -125,7 +125,7 @@ model Transaction {
   user           Users             @relation(fields: [user_id], references: [id])
 }
 
-model pointTransactions {
+model PointTransactions {
   id          Int      @id @default(autoincrement())
   userId      Int
   amount      Int

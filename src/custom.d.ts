@@ -40,3 +40,22 @@ export interface IEventReqParam {
       }
     }
   }  
+
+export interface ICouponParams  {
+  userId: number;
+  code?: string;
+  discountPercentage?: number;
+  validityMonths?: number;
+  couponName?: string;
+}
+
+  declare global {
+    // namespace purpose is to extend the Express Request object
+    // to include the event property
+    namespace Express {
+      export interface Request {
+        user?: ICouponParams;
+      }
+    }
+  }  
+

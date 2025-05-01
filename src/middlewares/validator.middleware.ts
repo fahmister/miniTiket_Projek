@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodError } from "zod";
 
+
 // Middleware to validate request body against Zod schema
 export default function ReqValidator(schema: z.ZodObject<any, any>) {
   return (req: Request, res: Response, next: NextFunction) => {

@@ -15,7 +15,7 @@ async function VerifyToken(req: Request, res: Response, next: NextFunction) {
 
         // Verify the token using the secret key
         // The verify function checks the token against the secret key
-        const verifyUser = verify(token, String(SECRET_KEY));
+        const verifyUser = verify(token, String(SECRET_KEY)) as IUserReqParam;
         
         if (!verifyUser) throw new Error("Invalid Token");
 

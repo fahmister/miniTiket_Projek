@@ -6,7 +6,9 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
   try {
     const user = req.user as IUserReqParam;
     
-    // Konversi tanggal dari string ke Date object
+    // Validasi ID user
+    if (!user?.id) throw new Error("User ID tidak valid");
+
     const startDate = new Date(req.body.start_date);
     const endDate = new Date(req.body.end_date);
 
@@ -20,8 +22,8 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
         price: req.body.price,
         description: req.body.description,
         category: req.body.category,
-        imager_url: req.body.image_url || null, // Handle optional field
-        user_id: user.id, // Pastikan ini ada dan valid
+        image_url: req.body.image_url || null,
+        user_id: user.id, // Gunakan user_id langsung
         organizer: `${user.first_name} ${user.last_name}`,
       }
     });
@@ -29,7 +31,7 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
     res.status(200).send({
       message: "Add New Event Successfully",
       data: event
-    })
+    });
   } catch (err) {
       next(err);
   }
@@ -38,18 +40,15 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
 export async function getEvents(req: Request, res: Response, next: NextFunction) {
   try {
     const events = await prisma.event.findMany({
-      include: { 
-        users: {
-          select: {
-            id: true,
-            first_name: true,
-            last_name: true
-          }
-        }, 
-        reviews: true 
-      }
+      include: {
+        user: true,
+      },
     });
-    res.status(200).json(events);
+
+    res.status(200).send({
+      message: "Get All Events Successfully",
+      data: events,
+    });
   } catch (err) {
     next(err);
   }

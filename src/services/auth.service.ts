@@ -2,24 +2,11 @@ import { IRegisterParam, ILoginParam,  } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { cloudinaryUpload, cloudinaryRemove } from "../utils/cloudinary";
-import { Transporter } from "../utils/nodemailer";
 import { sign, verify, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
-import { CouponCreation } from "./coupon.service";
-
-// Handlebars template engine
-import Handlebars from "handlebars";
-// path to join path with the file name
-import path from "path";
-// fs to read and manipulate files
-import fs from "fs";
+import {processReferralRewards} from "./referralrewards.services";
+import { sendVerificationEmail } from "./verificationemail.service";
 
 import { SECRET_KEY } from "../config";
-import { create } from "domain";
-import { PrismaClient, Prisma } from "@prisma/client";
-import { DefaultArgs } from "@prisma/client/runtime/library";
-
-// Define Percentage type as a number
-type Percentage = number;
 
 // Get all users from database via connection pool (prisma)
 // Other application from GetAll is to see the history of event created by EO
@@ -64,63 +51,18 @@ async function FindUserByEmail(email: string) {
   }
 }
 
-// Function to send referral reward email
-async function sendReferralRewardEmail(
-  tx: Prisma.TransactionClient,
-  referringUserId: number,
-  newUserEmail: string
-) {
-  try {
-    const referringUser = await tx.users.findUnique({
-      where: { id: referringUserId },
-      select: { email: true, first_name: true }
-    });
-
-    if (referringUser) {
-      const templatePath = path.join(
-        __dirname,
-        "../templates/referral-reward-notification.hbs"
-      );
-
-      // Check if the template file exists before reading it
-      if (fs.existsSync(templatePath)) {
-        const templateSource = fs.readFileSync(templatePath, "utf-8");
-        const compiledTemplate = Handlebars.compile(templateSource);
-        const html = compiledTemplate({
-          name: referringUser.first_name,
-          points: 10000,
-          referredEmail: newUserEmail
-        });
-
-        // Send email to the referring user about their reward
-        await Transporter.sendMail({
-          from: "EOHelper Rewards",
-          to: referringUser.email,
-          subject: "You've earned referral points!",
-          html
-        });
-      } else {
-        console.error('Template file not found:', templatePath);
-      }
-    }
-  } catch (emailError) {
-    console.error('Error sending referral reward notification:', emailError);
-  }
-}
-
 // Function to register a new user
 // This async function takes a parameter of type IRegisterParam and returns a promise of type Users
 
 // Define a default role ID
 const defaultRoleId = 1; // Replace 1 with the actual default role ID from your database
-
 async function RegisterService(param: IRegisterParam) {
   try {
-    // validate email already registered
-    // select * from user where email = email limit 1
+    // validate email already registered and select * from user where email = email limit 1
     const isExist = await FindUserByEmail(param.email);
     if (isExist) throw new Error("Email is already registered");
 
+    // Create roles if they don't exist
     await prisma.role.createMany({
       data: [
         { id: 1, name: 'Customer' },
@@ -136,15 +78,16 @@ async function RegisterService(param: IRegisterParam) {
     // insert into user table in prisma database
     // (first_name, last_name, email, password, is_verified, etc) 
     return await prisma.$transaction(async (tx) => {
-    // Check if referral code exists if provided
+   
+    // Check if referral code exists if provided. 
     // User can provide a referral code when account registering or leave it empty
     let referringUserId: number | null = null;
-    // 1. Check referral code validity
-    // Check if the user is not referring themselves
-    if (param.referral_code) {
+    // 1. Check referral code 
+    // If referral code is provided, find the user with that code
+    if (param.referred_by) {
       const referringUser = await tx.users.findFirst({
         where: { 
-          referral_code: param.referral_code,
+          referral_code: param.referred_by, // Match against referral_code
           id: { not: param.id ? parseInt(param.id, 10) : undefined } // Ensure user can't refer themselves
         }
       });
@@ -154,23 +97,40 @@ async function RegisterService(param: IRegisterParam) {
       }
       referringUserId = referringUser.id;
     }
+    // Check if the referring user exists in the database
+    const referringUserExists = await prisma.users.findUnique({
+      where: { referral_code: param.referred_by }
+    });
+    console.log('Referring user exists:', referringUserExists);
+    // ensure the referral code is valid and not empty
+    console.log('Attempting to use referral code:', param.referred_by);
+    // Additional Validation referred_by
+    if (param.referred_by) {
+      const codeValid = await prisma.users.count({
+        where: { referral_code: param.referred_by }
+      });
+      
+      if (codeValid === 0) {
+        throw new Error('The referral code does not exist');
+      }
+    }
     
-      // 2. Create user WITH referral code in the same operation
-      const user = await tx.users.create({
-        data: {
-          first_name: param.first_name,
-          last_name: param.last_name,
-          email: param.email,
-          password: hashedPassword,
-          is_verified: false,
-          roleId: param.roleId || defaultRoleId, // Default role ID or User can provide a custom one (2)
-          user_points: 0, // Default value for user_points
-          expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry,
-          referred_by: referringUserId ? referringUserId.toString() : null, // Convert referring user ID to string if exists
-          referral_code: "", // Temporary empty value
+    // 2. Create user - changed referred_by to use number directly
+    const user = await tx.users.create({
+      data: {
+        first_name: param.first_name,
+        last_name: param.last_name,
+        email: param.email,
+        password: hashedPassword,
+        is_verified: false,
+        roleId: param.roleId || defaultRoleId, // Default role ID or User can provide a custom one (2)
+        user_points: 0, // Default value for user_points
+        expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry,
+        referred_by: referringUserId,
+        referral_code: "",
         },
       });
-      // lines 112-123 insert into user table in prisma database
+      // lines 119-133 insert into user table in prisma database
       
       // 3. Generate and update the user's own referral code
       const finalReferralCode = `TIX-${user.id.toString().padStart(6, '0')}`;
@@ -181,131 +141,24 @@ async function RegisterService(param: IRegisterParam) {
 
       // 4. Process referral rewards if applicable
       if (referringUserId) {
-        try {
-          // Use the coupon service with transaction
-          const coupon = await CouponCreation({
-            userId: user.id, // Pass user ID directly as part of params
-            discountPercentage: 10, // 10% discount
-            validityMonths: 3, // 3 months validity 
-            couponName: "Welcome Coupon", // Name for the coupon
-            code: `WELCOME-${Math.random().toString(36).substring(2, 10).toUpperCase()}`, // Generate a random code
-        }, tx)
-
-        // For referring user - add points with 10,000 points
-        await tx.users.update({
-          where: { id: referringUserId },
-          data: { 
-            user_points: { increment: 10000 } // 10,000 points for referrer
-          }
-        });
-
-        // Create transaction records for both actions
-        await tx.pointTransactions.createMany({
-          data: [
-            {
-              userId: user.id,
-              amount: 0, // No points for new user
-              type: 'REFERRAL_COUPON',
-              description: 'Received welcome discount coupon'
-            },
-            {
-              userId: referringUserId,
-              amount: 10000,
-              type: 'REFERRAL_BONUS_POINTS',
-              description: `Referral bonus points for ${user.email}`
-            }
-          ]
-        });
-
-        // Send notification email
-        await sendReferralRewardEmail(tx, referringUserId, user.email);
-
+      try {
+        await processReferralRewards(tx, user.id, referringUserId, user.email);
       } catch (referralError) {
-          console.error('Referral reward processing failed:', referralError);
-          // Continue with registration even if referral rewards fail
-        }
+        console.error('Referral reward processing failed:', referralError);
+        // Continue registration even if rewards fail
       }
-
-      // Add this helper function of sendReferralRewardEmail inside RegisterService function
-      async function sendReferralRewardEmail(
-        tx: any,
-        referringUserId: number,
-        newUserEmail: string
-      ) {
-        try {
-          const referringUser = await tx.users.findUnique({
-            where: { id: referringUserId },
-            select: { email: true, first_name: true }
-          });
-
-          if (referringUser) {
-            const templatePath = path.join(
-            __dirname,
-            "../templates/referral-reward-notification.hbs"
-          );
-
-          // Check if the template file exists before reading it
-          // fs.existsSync is used to check if the file exists or not
-          if (fs.existsSync(templatePath)) {
-            const templateSource = fs.readFileSync(templatePath, "utf-8");
-            const compiledTemplate = Handlebars.compile(templateSource);
-            const html = compiledTemplate({
-              name: referringUser.first_name,
-              points: 10000,
-              referredEmail: newUserEmail
-          });
-
-          // Send email to the referring user about their reward
-          await Transporter.sendMail({
-            from: process.env.EMAIL_FROM || "EOHelper Rewards",
-            to: referringUser.email,
-            subject: "You've earned referral points!",
-            html
-          });
-        } else {
-          console.error('Template file not found:', templatePath);
-        }
-      } 
-    } catch (emailError) {
-      console.error('Failed to send referral notification:', emailError);
-      }
-    } 
-  
-
-    // Generate verification token
-    // payload is the data that will be included in the JWT token
-      const payload = {email: user.email,};
-      const token = sign(payload, String(SECRET_KEY), { expiresIn: "15m"});
-
-    // 5. Send verification email
-    // path to join the template file with the path
-      const templatePath = path.join(
-        __dirname, 
-        "../templates/register-template.hbs"
-      );
-
-      if (fs.existsSync(templatePath)) {
-        const templateSource = fs.readFileSync(templatePath, "utf-8");
-      
-        // Handlebars.compile is a function that compiles the template and generates and read the HTML file
-        const compiledTemplate = Handlebars.compile(templateSource);
-        const html = compiledTemplate({
-          email: param.email, 
-          fe_url: "http://localhost:3000/activation?token="
-      }); // Added token to URL
-
-      // Send email after users register their account
-      await Transporter.sendMail ({
-        from: "EOHelper",
-        to: param.email,
-        subject: "Welcome - Verify Your Account",
-        html
-      });
-    } else {
-      console.error('Template file not found at:', templatePath);
     }
-
+      // Generate verification token
+      // payload is the data that will be included in the JWT token
+      const payload = { email: user.email };
+      const token = sign(payload, String(SECRET_KEY), { expiresIn: "15m"});
+      // 5. Send verification notification email
+      await sendVerificationEmail(param.email, token);
+    
       return user;
+    }, {
+      maxWait: 20000, // Maximum time to wait for the transaction (20 seconds)
+      timeout: 15000  // Maximum time the transaction can run (15 seconds)
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -457,5 +310,4 @@ export {
   UpdateUserService,
   UpdateUserService2,
   VerifyUserService
-  };
-
+};

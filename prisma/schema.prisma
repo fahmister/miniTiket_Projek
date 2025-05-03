@@ -92,7 +92,7 @@ model Users {
   password         String        @db.VarChar(255)
   email            String        @unique
   referral_code    String        @unique @db.VarChar(30) // Unique code for each user
-  referred_by      String?       @db.VarChar(30) // Code used by the user to refer others
+  referred_by      Int? // Code used by the user to refer others
   user_points      Int           @default(0) // Default userpoint
   roleId           Int           @default(1) // Default role is customer
   is_verified      Boolean       @default(false)
@@ -101,13 +101,14 @@ model Users {
   transactions     Transaction[]
   discount_coupons Coupon[]
   role             Role          @relation(fields: [roleId], references: [id]) // enum atau model
-  // Users referred by this user
-  referredUsers    Users[]       @relation("Referral")
-  referredByUser   Users?        @relation("Referral", fields: [referred_by], references: [referral_code])
 
   // Relations for referrals
-  referralsGiven    Referral[]          @relation("ReferralsGiven")
-  referralsReceived Referral[]          @relation("ReferralsReceived")
+  referredUser  Users?  @relation("UserReferrals", fields: [referred_by], references: [id])
+  referredUsers Users[] @relation("UserReferrals")
+
+  // Relations for referrals
+  referralsGiven    Referral[]          @relation("ReferralsGiven") // Referrals given by this user
+  referralsReceived Referral[]          @relation("ReferralsReceived") // Referrals received by this user
   Event             Event[]
   PointTransactions PointTransactions[]
 

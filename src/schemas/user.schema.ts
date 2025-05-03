@@ -6,7 +6,8 @@ export const registerSchema = z.object({
   password: z.string().nonempty('Password is required'),
   first_name: z.string().nonempty('First name is required'),
   last_name: z.string().nonempty('Last name is required'),
-  roleId: z.number().nonnegative("Invalid Role")
+  roleId: z.number().nonnegative("Invalid Role"),
+  referred_by: z.string()
 })
 
 export const loginSchema = z.object({

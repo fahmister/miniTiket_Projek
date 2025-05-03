@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { RegisterService, LoginService, GetAll, UpdateUserService, UpdateUserService2 } from "../services/auth.service";
+import { processReferralRewards } from "../services/referralrewards.services";
 import { IUserReqParam } from "../custom";
+import prisma from "../lib/prisma"; // Import the Prisma client instance
 
 // RegisterController function to handle user registration
 // It takes the request, response, and next function as parameters
@@ -92,5 +94,44 @@ async function UsersController (
     }
 }
 
+// This route is for testing purposes only and should not be used in production
+// It processes referral rewards for a new user and their referring user
+async function ReferralController (req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    // Add validation for required fields
+    if (!req.body || !req.body.referringUserId || !req.body.newUserId || !req.body.newUserEmail) {
+      res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['referringUserId', 'newUserId', 'newUserEmail'],
+        received: req.body
+      });
+    }
+
+    const { referringUserId, newUserId, newUserEmail } = req.body;
+    
+    await prisma.$transaction(async (tx) => {
+      await processReferralRewards(tx, newUserId, referringUserId, newUserEmail);
+    });
+    
+    res.json({ 
+      success: true,
+      message: 'Referral rewards processed successfully'
+    });
+  } catch (error) {
+    console.error('Error in /test/referral:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'An unknown error occurred',
+      stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
+    });
+  }
+};
+
 // Exporting the controllers to be used in routers directory
-export { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2};
+export { 
+  RegisterController, 
+  LoginController, 
+  UsersController, 
+  UpdateProfileController, 
+  UpdateProfileController2, 
+  ReferralController
+};

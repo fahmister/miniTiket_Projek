@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../lib/prisma";
-import { IUserReqParam, IEventReqParam } from "../custom";
+import { IUserReqParam } from "../custom";
 
 export async function createEvent(req: Request, res: Response, next: NextFunction) {
   try {

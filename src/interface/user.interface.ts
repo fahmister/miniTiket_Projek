@@ -6,9 +6,9 @@ export interface IRegisterParam {
   email: string;
   password: string;
   referral_code?: string;
-  referred_by?: string;
   roleId?: number;
-  id?: string; // Add this property to fix the issue
+  id?: string;
+  referred_by: string // Add this property to fix the issue
 }
 
 export interface ILoginParam {

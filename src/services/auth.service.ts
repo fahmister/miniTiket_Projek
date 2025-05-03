@@ -1,10 +1,12 @@
-import { IRegisterParam, ILoginParam,  } from "../interface/user.interface";
+import { IRegisterParam, ILoginParam, IAuthService } from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { cloudinaryUpload, cloudinaryRemove } from "../utils/cloudinary";
 import { sign, verify, TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
 import {processReferralRewards} from "./referralrewards.services";
 import { sendVerificationEmail } from "./verificationemail.service";
+import { PasswordService } from './password.service';
+import { EmailService } from './passwordemail.service';
 
 import { SECRET_KEY } from "../config";
 
@@ -298,6 +300,65 @@ async function VerifyUserService() {
     });
   } catch (err) {
     throw err;
+  }
+}
+
+const passwordService = new PasswordService();
+const emailService = new EmailService();
+
+export class UserPasswordService implements IAuthService {
+  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { password: true }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const isMatch = await passwordService.comparePasswords(currentPassword, user.password);
+    if (!isMatch) {
+      throw new Error('Current password is incorrect');
+    }
+
+    const hashedPassword = await passwordService.hashPassword(newPassword);
+
+    await prisma.users.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+  }
+
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: { id: true, email: true }
+    });
+
+    if (!user) {
+      // Don't reveal whether user exists for security
+      return;
+    }
+
+    const resetToken = await passwordService.generateResetToken(user.id);
+    await emailService.sendPasswordResetEmail(user.email, resetToken);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const { userId } = await passwordService.verifyResetToken(token);
+
+    const hashedPassword = await passwordService.hashPassword(newPassword);
+
+    await prisma.$transaction([
+      prisma.users.update({
+        where: { id: userId },
+        data: { password: hashedPassword }
+      }),
+      prisma.passwordResetToken.deleteMany({
+        where: { userId }
+      })
+    ]);
   }
 }
 

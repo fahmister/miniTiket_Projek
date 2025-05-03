@@ -85,32 +85,33 @@ model Coupon {
 }
 
 model Users {
-  id               Int           @id @default(autoincrement())
-  first_name       String
-  last_name        String
-  profile_picture  String?
-  password         String        @db.VarChar(255)
-  email            String        @unique
-  referral_code    String        @unique @db.VarChar(30) // Unique code for each user
-  referred_by      Int? // Code used by the user to refer others
-  user_points      Int           @default(0) // Default userpoint
-  roleId           Int           @default(1) // Default role is customer
-  is_verified      Boolean       @default(false)
-  expiry_points    DateTime
-  reviews          Review[]
-  transactions     Transaction[]
-  discount_coupons Coupon[]
-  role             Role          @relation(fields: [roleId], references: [id]) // enum atau model
+  id                  Int                  @id @default(autoincrement())
+  first_name          String
+  last_name           String
+  profile_picture     String?
+  password            String               @db.VarChar(255)
+  email               String               @unique
+  referral_code       String               @unique @db.VarChar(30) // Unique code for each user
+  referred_by         Int? // Code used by the user to refer others
+  user_points         Int                  @default(0) // Default userpoint
+  roleId              Int                  @default(1) // Default role is customer
+  is_verified         Boolean              @default(false)
+  expiry_points       DateTime
+  reviews             Review[]
+  transactions        Transaction[]
+  discount_coupons    Coupon[]
+  role                Role                 @relation(fields: [roleId], references: [id]) // enum atau model
+  Event               Event[]
+  PointTransactions   PointTransactions[]
+  passwordResetTokens PasswordResetToken[] // Relation to PasswordResetToken
 
   // Relations for referrals
   referredUser  Users?  @relation("UserReferrals", fields: [referred_by], references: [id])
   referredUsers Users[] @relation("UserReferrals")
 
   // Relations for referrals
-  referralsGiven    Referral[]          @relation("ReferralsGiven") // Referrals given by this user
-  referralsReceived Referral[]          @relation("ReferralsReceived") // Referrals received by this user
-  Event             Event[]
-  PointTransactions PointTransactions[]
+  referralsGiven    Referral[] @relation("ReferralsGiven") // Referrals given by this user
+  referralsReceived Referral[] @relation("ReferralsReceived") // Referrals received by this user
 
   @@index([referred_by]) // aim to optimize search on referred_by
   @@map("users") // aim to match the database table name
@@ -160,4 +161,13 @@ model Referral {
 
   @@index([referral_code_used])
   @@map("referral")
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      Users    @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

@@ -20,3 +20,28 @@ export interface IUpdateUser{
     file: Express.Multer.File,
     email: string
 }
+
+export interface IAuthService {
+  changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void>;
+  requestPasswordReset(email: string): Promise<void>;
+  resetPassword(token: string, newPassword: string): Promise<void>;
+}
+
+export interface IPasswordService {
+  comparePasswords(plainPassword: string, hashedPassword: string): Promise<boolean>;
+  hashPassword(password: string): Promise<string>;
+  generateResetToken(userId: number): Promise<string>;
+  verifyResetToken(token: string): Promise<{ userId: number }>;
+}
+
+export interface IEmailService {
+  sendPasswordResetEmail(email: string, token: string): Promise<void>;
+}
+
+export interface IAuthRequest extends Request {
+  user?: {
+    id: number;
+    email: string;
+    role: string;
+  };
+}

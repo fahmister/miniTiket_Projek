@@ -28,3 +28,10 @@ export interface IUserReqParam {
       }
     }
   }  
+
+import { Request } from "express";
+declare module "express-serve-static-core" {
+  interface Request {
+    id?: number; // Add 'id' as an optional property
+  }
+}

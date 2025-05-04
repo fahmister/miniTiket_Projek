@@ -7,5 +7,6 @@ export const {
     CLOUDINARY_KEY, 
     CLOUDINARY_SECRET, 
     NODEMAILER_USER, 
-    NODEMAILER_PASS 
+    NODEMAILER_PASS,
+    FE_URL
 } = process.env;

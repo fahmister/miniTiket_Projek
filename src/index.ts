@@ -1,11 +1,12 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import bodyParser from 'body-parser';
-import { PORT } from "./config";
+import { PORT, FE_URL} from "./config";
 import AuthRouter from "./routers/auth.router";
 import path from "path";
 import EventRouter from './routers/event.router';
 import VoucherRouter from './routers/voucher.router';
 import { requestLogger } from "./middlewares/requestlogger.middleware";
+import cors from "cors"
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -14,6 +15,9 @@ const app: Application = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(cors({
+  origin: FE_URL
+}));
 app.use(express.json());
 app.use(requestLogger); // Log all requests
 

@@ -45,7 +45,7 @@ export async function processReferralRewards(
             userId: referringUserId,
             amount: 10000,
             type: 'REFERRAL_BONUS_POINTS',
-            description: `Referral bonus for ${newUserEmail}`
+            description: `Referral bonus from ${newUserEmail}`
           }
         ]
       });

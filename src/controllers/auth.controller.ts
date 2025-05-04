@@ -6,16 +6,24 @@ import { IUserReqParam } from "../custom";
 // It takes the request, response, and next function as parameters
 
 // If an error occurs, it calls the next function to handle the error
-async function RegisterController (
+async function RegisterController(
   req: Request, 
   res: Response, 
   next: NextFunction
-) {
+): Promise<void> {
     try {
         // Validate the request body using the IRegisterParam interface
         // This ensures that the request body contains the required fields for registration
         const data = await RegisterService(req.body);
-
+        
+        const roleId = typeof req.body.roleId === 'string' 
+          ? parseInt(req.body.roleId) 
+          : req.body.roleId;
+        // Validate roleId is 1 or 2
+        if (![1, 2].includes(roleId)) {
+        res.status(400).send({ error: "Invalid role ID" });
+        }
+        
         res.status(200).send({
             message: "Register Successfully",
             data

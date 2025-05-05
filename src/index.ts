@@ -7,6 +7,7 @@ import EventRouter from './routers/event.router';
 import VoucherRouter from './routers/voucher.router';
 import { requestLogger } from "./middlewares/requestlogger.middleware";
 import cors from "cors"
+import helmet from "helmet"
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -15,9 +16,12 @@ const app: Application = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(helmet());
 app.use(cors({
-  origin: FE_URL
+  origin: FE_URL,
+  credentials: true
 }));
+
 app.use(express.json());
 app.use(requestLogger); // Log all requests
 
@@ -40,3 +44,5 @@ app.use("/api", VoucherRouter); // Gunakan base path yang konsisten
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
+
+export default app;

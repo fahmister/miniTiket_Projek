@@ -41,10 +41,16 @@ async function LoginController (
     try {
         const data = await LoginService(req.body);
 
-        res.status(200).cookie("access_token", data.token).send({
-            message: "Login Successfully",
-            user: data.user
-        });
+        const { user, token } = data; // Extract user and token from data
+        res.status(200).json({
+          message: "Login successful",
+          token: token, // Ensure the token is returned from LoginService
+          user: {
+            id: user.id,
+            first_name: user.first_name,
+            roleName: user.roleName // Ensure roleName is used correctly
+          }
+      });
     } catch(err) {
         next(err)
     }
@@ -89,7 +95,7 @@ async function UpdateProfileController(
     }
   }
 
-async function UsersController (
+async function GetAllController (
   req: Request, 
   res: Response, 
   next: NextFunction
@@ -172,7 +178,7 @@ export const AuthPasswordController = {
 export { 
   RegisterController, 
   LoginController, 
-  UsersController, 
+  GetAllController, 
   UpdateProfileController, 
   UpdateProfileController2,
 };

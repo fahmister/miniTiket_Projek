@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { RegisterController, LoginController, UsersController, UpdateProfileController, UpdateProfileController2, AuthPasswordController } from "../controllers/auth.controller";
+import { RegisterController, LoginController, GetAllController, UpdateProfileController, UpdateProfileController2, AuthPasswordController } from "../controllers/auth.controller";
 import { VerifyToken, EOGuard } from "../middlewares/auth.middleware";
 import ReqValidator from "../middlewares/validator.middleware";
 import { registerSchema, loginSchema } from "../schemas/user.schema";
@@ -20,7 +20,7 @@ router.patch("/avatar", VerifyToken, Multer("memoryStorage").single("file"), Upd
 router.patch("/avatar2", VerifyToken, Multer("diskStorage", "AVT", "AVATAR").single("file"), UpdateProfileController2);
 
 // router for get all users
-router.get("/", VerifyToken, EOGuard, UsersController);
+router.get("/users", VerifyToken, EOGuard, GetAllController);
 
 // Password change - requires authentication
 router.post('/change-password', VerifyToken, AuthPasswordController.changePassword);

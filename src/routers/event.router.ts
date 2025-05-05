@@ -7,7 +7,7 @@ import { eventSchema } from "../schemas/event.schema";
 
 const router = Router();
 router.post("/", VerifyToken, EOGuard, ReqValidator(eventSchema), createEvent );
-router.get("/:id", getEvents);
+router.get("/", getEvents);
 router.get("/:id", getEventDetails);
 
 router.get('/ping', (req, res) => {

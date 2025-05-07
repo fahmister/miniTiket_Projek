@@ -41,6 +41,7 @@ model Event {
   created_at  DateTime  @default(now())
   reviews     Review[]
   vouchers    Voucher[]
+  Transaction Transaction[]
 }
 
 model Voucher {
@@ -121,10 +122,12 @@ model Transaction {
   id             String            @id @default(uuid())
   status         TransactionStatus
   payment_date   DateTime
-  user_id        Int
   total_amount   Float
   payment_method String
+  user_id        Int
   user           Users             @relation(fields: [user_id], references: [id])
+  event_id       String
+  event          Event             @relation(fields: [event_id], references: [id])
 }
 
 model PointTransactions {

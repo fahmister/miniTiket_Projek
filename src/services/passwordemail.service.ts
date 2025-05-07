@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import Handlebars from 'handlebars';
 import { IEmailService } from '../interface/user.interface';
+import { FE_URL, NODEMAILER_USER} from "../config";
 
 export class EmailService implements IEmailService {
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
@@ -11,11 +12,12 @@ export class EmailService implements IEmailService {
       const templateSource = fs.readFileSync(templatePath, 'utf-8');
       const template = Handlebars.compile(templateSource);
       
-      const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+      // Update this to match your frontend login page with token parameter
+      const resetLink = `${FE_URL}/login?token=${token}`;
       const html = template({ resetLink });
 
       await Transporter.sendMail({
-        from: 'Your Event MiniTiket <no-reply@yourapp.com>',
+        from: `Your Event MiniTiket <${NODEMAILER_USER || 'no-reply@yourapp.com'}>`,
         to: email,
         subject: 'Password Reset Request',
         html

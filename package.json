@@ -4,7 +4,10 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "nodemon",
-    "test": "jest"
+    "test": "jest",
+    "build": "npx tsc",
+    "start": "npm run build && node dist/index.js",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",

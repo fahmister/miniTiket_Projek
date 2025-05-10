@@ -1,6 +1,17 @@
 import { Request, Response, NextFunction } from "express";
-import { RegisterService, LoginService, GetAll, UpdateUserService, UpdateUserService2, UserPasswordService } from "../services/auth.service";
+import { 
+          RegisterService, 
+          LoginService, 
+          GetAll, 
+          UpdateUserService, 
+          UpdateUserService2, 
+          UserPasswordService,
+          ActivateUserService,
+          verifyResetTokenService
+        } from "../services/auth.service";
+
 import { IUserReqParam } from "../custom";
+import { TokenExpiredError, JsonWebTokenError } from "jsonwebtoken";
 
 // RegisterController function to handle user registration
 // It takes the request, response, and next function as parameters
@@ -31,6 +42,23 @@ async function RegisterController(
     } catch(err) {
         next(err)
     }
+}
+
+async function ActivationController(
+  req: Request, 
+  res: Response, 
+  next: NextFunction
+) {
+  try {
+      const result = await ActivateUserService(req.params.token);
+      res.status(200).json(result);
+  } catch (err) {
+    if (err instanceof Error) {
+        res.status(400).json({ err: err.message });
+    } else {
+        res.status(400).json({ err: "An unknown error occurred" });
+    }
+  }
 }
 
 async function LoginController (
@@ -173,12 +201,41 @@ export const AuthPasswordController = {
   }
 }
 
+async function VerifyResetTokenController (
+  req: Request, 
+  res: Response, 
+  next: NextFunction
+):Promise<void> {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      res.status(400).json({ error: "Token is required" });
+    }
+
+    const result = await verifyResetTokenService(token);
+    res.status(200).json(result);
+  } catch (err: any) {
+    console.error('Token verification error:', err);
+
+  if (err instanceof TokenExpiredError) {
+      res.status(400).json({ error: "Token has expired" });
+    } else if (err instanceof JsonWebTokenError) {
+      res.status(400).json({ error: "Invalid token" });
+    } else if (err.message.includes('Invalid') || err.message.includes('expired')) {
+      res.status(400).json({ error: err.message });
+    } next(err);
+    
+    res.status(500).json({ error: "Internal server error" });
+  } 
+}
 
 // Exporting the controllers to be used in routers directory
 export { 
   RegisterController, 
+  ActivationController,
   LoginController, 
   GetAllController, 
   UpdateProfileController, 
   UpdateProfileController2,
+  VerifyResetTokenController
 };

@@ -16,7 +16,9 @@ export class PasswordService implements IPasswordService {
   
     async generateResetToken(userId: number): Promise<string> {
       const resetToken = sign(
-        { userId },
+        { userId,
+          type: 'password_reset'  // Add this to distinguish from other tokens
+         },
         SECRET_KEY || 'default_secret_key',
         { expiresIn: '1h' }
       );
@@ -37,7 +39,10 @@ export class PasswordService implements IPasswordService {
         throw new Error('SECRET_KEY is not defined');
       }
 
-      const decoded = verify(token, SECRET_KEY) as unknown as { userId: number };
+      const decoded = verify(token, SECRET_KEY) as unknown as { 
+        userId: number 
+        type: string // Add this to ensure the token is for password reset
+      };
   
       const resetToken = await prisma.passwordResetToken.findFirst({
         where: {

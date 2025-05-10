@@ -45,3 +45,12 @@ export interface IAuthRequest extends Request {
     role: string;
   };
 }
+
+export interface VerifyResetTokenRequest {
+  token: string;
+}
+
+export interface VerifyResetTokenResponse {
+  valid?: boolean;
+  error?: string;
+}

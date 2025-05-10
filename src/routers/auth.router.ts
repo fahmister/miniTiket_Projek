@@ -1,5 +1,15 @@
 import { Router } from "express";
-import { RegisterController, LoginController, GetAllController, UpdateProfileController, UpdateProfileController2, AuthPasswordController } from "../controllers/auth.controller";
+import { 
+        RegisterController, 
+        ActivationController,
+        LoginController, 
+        GetAllController, 
+        UpdateProfileController, 
+        UpdateProfileController2, 
+        AuthPasswordController,
+        VerifyResetTokenController 
+        } from "../controllers/auth.controller";
+
 import { VerifyToken, EOGuard } from "../middlewares/auth.middleware";
 import ReqValidator from "../middlewares/validator.middleware";
 import { registerSchema, loginSchema } from "../schemas/user.schema";
@@ -9,6 +19,9 @@ const router = Router();
 
 // router for register
 router.post("/register", ReqValidator(registerSchema), RegisterController);
+
+// router for activation after register
+router.get("/activate/:token", ActivationController);
 
 // router for login
 router.post("/login", ReqValidator(loginSchema), LoginController);
@@ -28,6 +41,8 @@ router.post('/change-password', VerifyToken, AuthPasswordController.changePasswo
 // Password reset routes
 router.post('/request-password-reset', AuthPasswordController.requestPasswordReset);
 router.post('/reset-password', AuthPasswordController.resetPassword);
+
+router.post("/verify-reset-token", VerifyResetTokenController)
 
 // exporting the router to be used in index.ts
 export default router;

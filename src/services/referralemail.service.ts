@@ -3,6 +3,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import path from "path";
 import { Prisma } from "@prisma/client";
+import { NODEMAILER_USER} from "../config";
 
 // This helper function of sendReferralRewardEmail inside RegisterService function 
 export async function sendReferralRewardEmail(
@@ -40,13 +41,18 @@ export async function sendReferralRewardEmail(
 
           // Send email to the referring user about their reward
           await Transporter.sendMail({
-            from: process.env.EMAIL_FROM || "EOHelper Rewards",
+            from: `Your Event TuneInLive <${NODEMAILER_USER || 'no-reply@yourapp.com'}>`,
             to: referringUser.email,
             subject: "You've earned referral points!",
-            html
+            html,
+            attachments: [{
+              filename: 'logo_miniTiket_v1.jpg',
+              path: path.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+              cid: 'logo' // same cid value as in the html img src of register-template.hbs
+            }]
           });
-        } catch (error) {
-          console.error('Error sending referral notification:', error);
-          throw error;
+        } catch (emailError) {
+          console.error('Error sending referral notification:', emailError);
+          throw emailError;
         }
       }

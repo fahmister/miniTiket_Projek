@@ -3,14 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Great Value for You</title>
+    <img
+      src="cid:logo" 
+      alt="miniTiket Logo" 
+      style= "width: 30%; display: block; 
+              margin: auto; height: 30%;"
+    >
+    <div style="padding: 15px 10px;">
+        <h2 style="text-align: center; color: #023047;">
+            Great Value for You
+        </h2>
+    </div>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        p { margin-top: 8px; margin-bottom: 8px; text-align: justify }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+    </style>
 </head>
 <body>
-<div>
-  <h1>Congratulations, {{name}}!</h1>
-  <p>You've successfully referred {{referredEmail}} to our platform.</p>
-  <p>As a thank you, we've credited your account with <strong>{{points}} points</strong>!</p>
-  <p>These points can be used to purchase tickets or get discounts on future events.</p>
-</div>
+  <div class ="container">
+    <h4>Congratulations, {{name}}!</43>
+    <p>
+      You've successfully referred {{referredEmail}} to our platform.
+    </p>
+
+    <p>
+      As a thank you, we've credited your account with 
+        <strong>{{points}} points</strong>!
+    </p>
+    
+    <p>
+      These points can be used to purchase tickets or get discounts on future events.
+    </p>
+    
+    <div>
+      <p>Thank you!</p>
+      <p>Best regards,</p>
+      <p>TuneInLive Team</p>
+    </div>
+  </div>
 </body>
 </html>

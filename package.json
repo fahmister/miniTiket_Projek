@@ -10,7 +10,7 @@
     "postinstall": "prisma generate"
   },
   "keywords": [],
-  "author": "",
+  "author": "Fahmi Muhammad, Victor Adi Winata",
   "license": "ISC",
   "description": "",
   "dependencies": {

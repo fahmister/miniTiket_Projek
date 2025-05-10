@@ -1,4 +1,4 @@
-import { IRegisterParam, ILoginParam, IAuthService } from "../interface/user.interface";
+import { IRegisterParam, ILoginParam, IAuthService} from "../interface/user.interface";
 import prisma from "../lib/prisma";
 import { hash, genSaltSync, compare } from "bcrypt";
 import { cloudinaryUpload, cloudinaryRemove } from "../utils/cloudinary";
@@ -173,26 +173,46 @@ async function RegisterService(param: IRegisterParam) {
 async function ActivateUserService(token: string) {
   try {
     // Verify the JWT token
-    const decoded = verify(token, String(SECRET_KEY)) as { email: string };
+    const decoded = verify(token, String(SECRET_KEY)) as { email: string, type?: string };
     
-    // Update the user's verification status
-    const updatedUser = await prisma.$transaction(async (t: any) => {
-      return await t.users.update({
-        where: {
-          email: decoded.email,
-          is_verified: false // Only update if currently not verified
-        },
-        data: {
-          is_verified: true
-        }
-      });
-    }); // Ensure this closing brace and parenthesis are correctly placed
-
-    if (!updatedUser) {
-      throw new Error("User not found or already verified");
+    // Reject if this is a password reset token
+    if (decoded.type === 'password_reset') {
+      throw new Error("Invalid activation token");
     }
 
-    return updatedUser;
+    // First, check if user exists
+    const user = await prisma.users.findUnique({
+      where: { email: decoded.email }
+    });
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // If already verified, return success response
+    if (user.is_verified) {
+      return {
+        success: true,
+        message: "Account was already verified",
+        user
+      };
+    }
+
+    // Update the user's verification status
+    const updatedUser = await prisma.users.update({
+      where: {
+        email: decoded.email
+      },
+      data: {
+        is_verified: true
+      }
+    });
+
+    return {
+      success: true,
+      message: "Account successfully activated",
+      user: updatedUser
+    };
   } catch (err) {
     // Handle different error cases
     if (err instanceof TokenExpiredError) {
@@ -362,6 +382,39 @@ export class UserPasswordService implements IAuthService {
   }
 }
 
+
+async function verifyResetTokenService(token: string) {
+  try {
+    if (!token) {
+      throw new Error("Token is required");
+    }
+
+    // First verify the JWT
+    const decoded = verify(token, String(SECRET_KEY)) as { userId: number };
+    
+    // Then check if the token exists in the database and isn't expired
+    const resetToken = await prisma.passwordResetToken.findFirst({
+      where: {
+        token,
+        expiresAt: { gt: new Date() }
+      }
+    });
+
+    if (!resetToken) {
+      throw new Error("Invalid or expired token");
+    }
+
+    return { valid: true, userId: decoded.userId };
+  } catch (err) {
+    if (err instanceof TokenExpiredError) {
+      throw new Error("Token has expired");
+    } else if (err instanceof JsonWebTokenError) {
+      throw new Error("Invalid token");
+    }
+    throw err; // Re-throw other errors
+  }
+}
+
 // Exporting the functions to be used in controllers directory
 export { 
   GetAll,
@@ -370,5 +423,6 @@ export {
   LoginService,
   UpdateUserService,
   UpdateUserService2,
-  VerifyUserService
+  VerifyUserService,
+  verifyResetTokenService
 };

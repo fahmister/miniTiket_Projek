@@ -3,17 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Greeting Letter</title>
+    <img
+        src="cid:logo" 
+        alt="miniTiket Logo" 
+        style=  "width: 30%; display: block; 
+                margin: auto; height: 30%;"
+    >
+    <div style="padding: 15px 10px;">
+        <h2 style="text-align: center; color: #023047;">
+            TuneInLive
+        </h2>
+        <p style="text-align: center; color: #219EBC;">
+            Your one-stop solution for event management
+        </p>
+    </div>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        p { margin-top: 8px; margin-bottom: 8px; text-align: justify }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+    </style>
 </head>
 <body>
-    <img 
-        src="../../public/logo/logo_miniTiket_v1.jpg" 
-        alt="miniTiket Logo" 
-        style="width: 100px; height: auto;">
-    <h1>Welcome to Our Website</h1>
-    <h4>Lets Have Some Fun, {{email}}</h4>
-    <a href="{{fe_url}}">
-        <button >Account Activation</button>
-    </a>
+    <div class ="container">
+        <h3>Welcome to Our Website</h3>
+        <h4>Lets Have Some Fun, {{email}}</h4>
+        <p>
+            Thank you for registering. 
+            Please click the button below to activate your account:
+        </p>
+        <br>
+        <a href="{{fe_url}}">
+            <button style="
+                background-color: #8ECAE6; 
+                color: #023047; 
+                padding: 5px 15px; 
+                text-align: center; 
+                text-decoration: none; 
+                display: inline-block; 
+                font-size: 16px; 
+                margin: 5px 2px; 
+                cursor: pointer;
+                border-radius: 8px;"
+                > Account Activation
+            </button>
+        </a>
+
+        <div>
+            <p>
+                If the button doesn't work, 
+                copy and paste this link into your browser:
+            </p>
+        </div>
+        
+        <div>
+            <p> {{fe_url}} </p>
+        </div>
+  
+        <div>
+            <p>This link will expire in 15 minutes.</p>
+            <p>
+                If you did not register for this account, 
+                please ignore this email.
+            </p>
+        </div>
+
+        <div>
+            <p>Thank you!</p>
+            <p>Best regards,</p>
+            <p>TuneInLive Team</p>
+        </div>
+    </div>
 </body>
 </html>

@@ -8,6 +8,8 @@ import VoucherRouter from './routers/voucher.router';
 import { requestLogger } from "./middlewares/requestlogger.middleware";
 import cors from "cors"
 import helmet from "helmet"
+import transactionRouter from './routers/transaction.router';
+
 
 const port = PORT || 8080;
 const app: Application = express();
@@ -36,6 +38,7 @@ app.get(
     }
   );
 
+app.use('/api/transactions', transactionRouter);
 app.use("/events", EventRouter);
 app.use("/auth", AuthRouter);
 app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));

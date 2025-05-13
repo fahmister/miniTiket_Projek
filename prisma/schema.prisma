@@ -25,12 +25,12 @@ enum RefferalStatus {
 }
 
 model Event {
-  id          String    @id @default(uuid())
+  id          String        @id @default(uuid())
   name        String
   category    String
   image_url   String?
   user_id     Int
-  user        Users     @relation(fields: [user_id], references: [id])
+  user        Users         @relation(fields: [user_id], references: [id])
   location    String
   start_date  DateTime
   end_date    DateTime
@@ -38,7 +38,7 @@ model Event {
   organizer   String
   price       Float
   description String
-  created_at  DateTime  @default(now())
+  created_at  DateTime      @default(now())
   reviews     Review[]
   vouchers    Voucher[]
   Transaction Transaction[]
@@ -119,24 +119,23 @@ model Users {
 }
 
 model Transaction {
-  id              String            @id @default(uuid())
-  status          TransactionStatus @default(waiting_for_payment)
-  total_amount    Float
-  payment_method  String?           // manual/doku
-  user_id         Int
-  user            Users             @relation(fields: [user_id], references: [id])
-  event_id        String
-  event           Event             @relation(fields: [event_id], references: [id])
-  doku_payment_id String?           // ID transaksi dari DOKU
-  doku_invoice    String?           @unique // invoice number dari DOKU
-  doku_payment_url String?          // URL pembayaran DOKU
-  created_at      DateTime          @default(now())
-  expired_at      DateTime?         // waktu kadaluarsa (2 jam)
-  payment_date    DateTime?         // waktu pembayaran
-  quantity        Int               // jumlah tiket
+  id               String            @id @default(uuid())
+  status           TransactionStatus @default(waiting_for_payment)
+  total_amount     Float
+  payment_method   String? // manual/doku
+  user_id          Int
+  user             Users             @relation(fields: [user_id], references: [id])
+  event_id         String
+  event            Event             @relation(fields: [event_id], references: [id])
+  doku_payment_id  String? // ID transaksi dari DOKU
+  doku_invoice     String?           @unique // invoice number dari DOKU
+  doku_payment_url String? // URL pembayaran DOKU
+  created_at       DateTime          @default(now())
+  expired_at       DateTime? // waktu kadaluarsa (2 jam)
+  payment_date     DateTime? // waktu pembayaran
+  quantity         Int // jumlah tiket
   // tambahkan field lain sesuai kebutuhan
 }
-
 
 model PointTransactions {
   id          Int      @id @default(autoincrement())
@@ -146,6 +145,11 @@ model PointTransactions {
   description String?
   user        Users    @relation(fields: [userId], references: [id])
   CreatedAt   DateTime @default(now())
+  expiry_date DateTime // add expiry date for points
+  is_expired  Boolean  @default(false)
+
+  @@index([userId, is_expired])
+  @@index([expiry_date])
 }
 
 model Role {

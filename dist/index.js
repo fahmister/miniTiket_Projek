@@ -21,7 +21,8 @@ app.use(body_parser_1.default.urlencoded({ extended: true }));
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)({
     origin: config_1.FE_URL,
-    credentials: true
+    credentials: true, // This is crucial
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express_1.default.json());
 app.use(requestlogger_middleware_1.requestLogger); // Log all requests

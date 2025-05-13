@@ -42,7 +42,7 @@ app.get(
 app.use('/api/transactions', transactionRouter);
 app.use("/api/events", EventRouter);
 app.use("/auth", AuthRouter);
-app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
+// app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 app.use("/api", VoucherRouter); // Gunakan base path yang konsisten
 
 

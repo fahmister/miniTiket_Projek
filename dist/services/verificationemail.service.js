@@ -18,6 +18,7 @@ const handlebars_1 = __importDefault(require("handlebars"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const nodemailer_1 = require("../utils/nodemailer");
+const config_1 = require("../config");
 // Helper function for verification email
 function sendVerificationEmail(email, token) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -29,13 +30,18 @@ function sendVerificationEmail(email, token) {
                 const compiledTemplate = handlebars_1.default.compile(templateSource);
                 const html = compiledTemplate({
                     email: email,
-                    fe_url: `http://localhost:3000/activation?token=`, // Replace with your frontend URL
+                    fe_url: `${config_1.FE_URL}/activation?token=${token}`, // Replace with your frontend URL
                 });
                 yield nodemailer_1.Transporter.sendMail({
-                    from: "EOHelper",
+                    from: `Your Event TuneInLive <${config_1.NODEMAILER_USER || 'no-reply@yourapp.com'}>`,
                     to: email,
                     subject: "Welcome - Verify Your Account",
-                    html
+                    html,
+                    attachments: [{
+                            filename: 'logo_miniTiket_v1.jpg',
+                            path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                            cid: 'logo' // same cid value as in the html img src of register-template.hbs
+                        }]
                 });
             }
             else {

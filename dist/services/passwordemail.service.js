@@ -29,10 +29,15 @@ class EmailService {
                 const resetLink = `${config_1.FE_URL}/login?token=${token}`;
                 const html = template({ resetLink });
                 yield nodemailer_1.Transporter.sendMail({
-                    from: `Your Event MiniTiket <${config_1.NODEMAILER_USER || 'no-reply@yourapp.com'}>`,
+                    from: `Your Event TuneInLive <${config_1.NODEMAILER_USER || 'no-reply@yourapp.com'}>`,
                     to: email,
                     subject: 'Password Reset Request',
-                    html
+                    html,
+                    attachments: [{
+                            filename: 'logo_miniTiket_v1.jpg',
+                            path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                            cid: 'logo'
+                        }]
                 });
             }
             catch (error) {

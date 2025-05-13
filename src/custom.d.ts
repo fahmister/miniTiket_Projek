@@ -4,6 +4,7 @@ export interface IUserReqParam {
     first_name: string;
     last_name: string;
     roleName: string;
+    profile_picture: string;
   }
   
   declare global {

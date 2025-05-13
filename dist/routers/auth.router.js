@@ -12,6 +12,8 @@ const multer_1 = require("../utils/multer");
 const router = (0, express_1.Router)();
 // router for register
 router.post("/register", (0, validator_middleware_1.default)(user_schema_1.registerSchema), auth_controller_1.RegisterController);
+// router for activation after register
+router.get("/activate/:token", auth_controller_1.ActivationController);
 // router for login
 router.post("/login", (0, validator_middleware_1.default)(user_schema_1.loginSchema), auth_controller_1.LoginController);
 // use one of router.patch("/avatar")
@@ -26,5 +28,6 @@ router.post('/change-password', auth_middleware_1.VerifyToken, auth_controller_1
 // Password reset routes
 router.post('/request-password-reset', auth_controller_1.AuthPasswordController.requestPasswordReset);
 router.post('/reset-password', auth_controller_1.AuthPasswordController.resetPassword);
+router.post("/verify-reset-token", auth_controller_1.VerifyResetTokenController);
 // exporting the router to be used in index.ts
 exports.default = router;

@@ -3,11 +3,13 @@ import {
         RegisterController, 
         ActivationController,
         LoginController, 
+        EODashboardController,
         GetAllController, 
         UpdateProfileController, 
-        UpdateProfileController2, 
+        // UpdateProfileController2, 
         AuthPasswordController,
-        VerifyResetTokenController 
+        VerifyResetTokenController,
+        getCurrentUserController
         } from "../controllers/auth.controller";
 
 import { VerifyToken, EOGuard } from "../middlewares/auth.middleware";
@@ -26,12 +28,18 @@ router.get("/activate/:token", ActivationController);
 // router for login
 router.post("/login", ReqValidator(loginSchema), LoginController);
 
+// router for Authorization testing of EO in Postman
+router.get("/eo-dashboard", VerifyToken, EOGuard, EODashboardController)
+
 // use one of router.patch("/avatar")
 // path for upload avatar in cloudinary
 router.patch("/avatar", VerifyToken, Multer("memoryStorage").single("file"), UpdateProfileController);
 // path for upload avatar in local storage (public folder)
-router.patch("/avatar2", VerifyToken, Multer("diskStorage", "AVT", "AVATAR").single("file"), UpdateProfileController2);
+// router.patch("/avatar2", VerifyToken, Multer("diskStorage", "AVT", "AVATAR").single("file"), UpdateProfileController2);
 
+// router for get current user
+// This route is used to get the current user's information
+router.get("/me", VerifyToken, getCurrentUserController);
 // router for get all users
 router.get("/users", VerifyToken, EOGuard, GetAllController);
 

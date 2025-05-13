@@ -55,14 +55,6 @@ export async function processReferralRewards(
           }
         ]
       });
-      
-      // Update user's total points
-      await tx.users.update({
-        where: { id: referringUserId },
-        data: { 
-          user_points: { increment: 10000 }
-        }
-      });
   
       // 4. Send notification email
       await sendReferralRewardEmail(tx, referringUserId, newUserEmail);

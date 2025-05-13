@@ -250,6 +250,7 @@ async function LoginService(param: ILoginParam) {
       profile_picture: users.profile_picture || "", // Ensure profile_picture is optional
       referral_code: users.referral_code, // Add these
       user_points: users.user_points,
+      expiry_points: users.expiry_points,
       discount_coupons: users.discount_coupons || [],
     }
 

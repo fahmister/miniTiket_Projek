@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { 
+          FindUserByEmail,
           RegisterService, 
           LoginService, 
           GetAll, 
           UpdateUserService, 
-          UpdateUserService2, 
+          // UpdateUserService2, 
           UserPasswordService,
           ActivateUserService,
           verifyResetTokenService
@@ -57,7 +58,7 @@ async function ActivationController(
         res.status(400).json({ err: err.message });
     } else {
         res.status(400).json({ err: "An unknown error occurred" });
-    }
+    } next(err)
   }
 }
 
@@ -70,6 +71,15 @@ async function LoginController (
         const data = await LoginService(req.body);
 
         const { user, token } = data; // Extract user and token from data
+
+        // Set secure, httpOnly cookie
+        res.cookie('access_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7 * 1000 // 1 week
+        });
+
         res.status(200).json({
           message: "Login successful",
           token: token, // Ensure the token is returned from LoginService
@@ -84,44 +94,104 @@ async function LoginController (
     }
 }
 
+// In Postman, Authorization testing
+async function EODashboardController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+  ) {
+    try {
+      res.status(200).json({
+        message: "Welcome to Event Organizer Dashboard",
+        user: req.user
+    })
+  } catch(err) {
+        next(err)
+    }
+}
+
 async function UpdateProfileController(
     req: Request,
     res: Response,
-    next: NextFunction
-  ) {
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { file } = req;
       const { email } = req.user as IUserReqParam;
       if (!file) throw new Error("file not found");
-      await UpdateUserService(file, email);
-  
+
+      // This now returns the Cloudinary filename
+      const cloudinaryUrl: string = await UpdateUserService(file, email);
+      if (typeof cloudinaryUrl !== 'string' || !cloudinaryUrl) {
+        throw new Error("Invalid response from UpdateUserService");
+      }
+      const splitUrl = cloudinaryUrl.split('/');
+      const cloudinaryPath = splitUrl.slice(splitUrl.indexOf('upload') + 1).join('/');
+      
       res.status(200).send({
         message: "Profile update successfully",
+        fileName: cloudinaryPath // e.g. "v12345/profile.jpg"
       });
     } catch (err) {
       next(err);
     }
   }
 
-  async function UpdateProfileController2(
-    req: Request,
-    res: Response,
+  async function getCurrentUserController(
+    req: Request, 
+    res: Response, 
     next: NextFunction
-  ) {
-    try {
-      const { file } = req;
-      const { email } = req.user as IUserReqParam;
-      // console.log(file);
-      if (!file) throw new Error("file not found");
-      await UpdateUserService2(file, email);
-  
-      res.status(200).send({
-        message: "Profile update successfully",
-      });
-    } catch (err) {
-      next(err);
+  ): Promise<void> {
+  try {
+    if (!req.user) {
+      res.status(400).json({ message: "User is not authenticated" });
+      return;
     }
+    const user = await FindUserByEmail(req.user.email);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    
+    // Return necessary user data without sensitive information
+    const userData = {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      profile_picture: user.profile_picture || null, // Ensure profile_picture is optional
+      roleName: user.role.name,
+      referral_code: user.referral_code,
+      user_points: user.user_points,
+      discount_coupons: user.discount_coupons,
+      expiry_points: user.expiry_points
+    };
+
+    res.status(200).json(userData);
+  } catch (err) {
+    next(err);
   }
+}
+
+  // async function UpdateProfileController2(
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction
+  // ) {
+  //   try {
+  //     const { file } = req;
+  //     const { email } = req.user as IUserReqParam;
+  //     // console.log(file);
+  //     if (!file) throw new Error("file not found");
+  //     await UpdateUserService2(file, email);
+  
+  //     res.status(200).send({
+  //       message: "Profile update successfully",
+  //     });
+  //   } catch (err) {
+  //     next(err);
+  //   }
+  // }
 
 async function GetAllController (
   req: Request, 
@@ -142,6 +212,7 @@ async function GetAllController (
     }
 }
 
+
 const authService = new UserPasswordService();
 export const AuthPasswordController = {
   async changePassword(req: Request, res: Response, next: NextFunction):Promise<void> {
@@ -160,7 +231,7 @@ export const AuthPasswordController = {
 
       await authService.changePassword(userId, currentPassword, newPassword);
 
-      res.status(200).send({ message: "Password reset successful" });
+      res.status(200).json({ message: "Password Changed Successfully" });
     } catch (err) {
       console.error('Password change error:', err);
       if (err instanceof Error && err.message === 'User not found') {
@@ -169,7 +240,7 @@ export const AuthPasswordController = {
       if (err instanceof Error && err.message === 'Current password is incorrect') {
           res.status(400).send({ message: err.message });
       }
-      next()
+      next(err)
     }
   },
 
@@ -233,9 +304,11 @@ async function VerifyResetTokenController (
 export { 
   RegisterController, 
   ActivationController,
-  LoginController, 
+  LoginController,
+  EODashboardController, 
   GetAllController, 
-  UpdateProfileController, 
-  UpdateProfileController2,
+  UpdateProfileController,
+  getCurrentUserController, 
+  // UpdateProfileController2,
   VerifyResetTokenController
 };

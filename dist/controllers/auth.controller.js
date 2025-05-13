@@ -11,11 +11,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthPasswordController = void 0;
 exports.RegisterController = RegisterController;
+exports.ActivationController = ActivationController;
 exports.LoginController = LoginController;
 exports.GetAllController = GetAllController;
 exports.UpdateProfileController = UpdateProfileController;
 exports.UpdateProfileController2 = UpdateProfileController2;
+exports.VerifyResetTokenController = VerifyResetTokenController;
 const auth_service_1 = require("../services/auth.service");
+const jsonwebtoken_1 = require("jsonwebtoken");
 // RegisterController function to handle user registration
 // It takes the request, response, and next function as parameters
 // If an error occurs, it calls the next function to handle the error
@@ -39,6 +42,22 @@ function RegisterController(req, res, next) {
         }
         catch (err) {
             next(err);
+        }
+    });
+}
+function ActivationController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const result = yield (0, auth_service_1.ActivateUserService)(req.params.token);
+            res.status(200).json(result);
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                res.status(400).json({ err: err.message });
+            }
+            else {
+                res.status(400).json({ err: "An unknown error occurred" });
+            }
         }
     });
 }
@@ -173,3 +192,29 @@ exports.AuthPasswordController = {
         });
     }
 };
+function VerifyResetTokenController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const { token } = req.body;
+            if (!token) {
+                res.status(400).json({ error: "Token is required" });
+            }
+            const result = yield (0, auth_service_1.verifyResetTokenService)(token);
+            res.status(200).json(result);
+        }
+        catch (err) {
+            console.error('Token verification error:', err);
+            if (err instanceof jsonwebtoken_1.TokenExpiredError) {
+                res.status(400).json({ error: "Token has expired" });
+            }
+            else if (err instanceof jsonwebtoken_1.JsonWebTokenError) {
+                res.status(400).json({ error: "Invalid token" });
+            }
+            else if (err.message.includes('Invalid') || err.message.includes('expired')) {
+                res.status(400).json({ error: err.message });
+            }
+            next(err);
+            res.status(500).json({ error: "Internal server error" });
+        }
+    });
+}

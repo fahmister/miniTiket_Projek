@@ -31,7 +31,9 @@ class PasswordService {
     }
     generateResetToken(userId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const resetToken = (0, jsonwebtoken_1.sign)({ userId }, config_1.SECRET_KEY || 'default_secret_key', { expiresIn: '1h' });
+            const resetToken = (0, jsonwebtoken_1.sign)({ userId,
+                type: 'password_reset' // Add this to distinguish from other tokens
+            }, config_1.SECRET_KEY || 'default_secret_key', { expiresIn: '1h' });
             yield prisma_1.default.passwordResetToken.create({
                 data: {
                     userId,

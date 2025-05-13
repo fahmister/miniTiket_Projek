@@ -20,6 +20,7 @@ exports.LoginService = LoginService;
 exports.UpdateUserService = UpdateUserService;
 exports.UpdateUserService2 = UpdateUserService2;
 exports.VerifyUserService = VerifyUserService;
+exports.verifyResetTokenService = verifyResetTokenService;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const bcrypt_1 = require("bcrypt");
 const cloudinary_1 = require("../utils/cloudinary");
@@ -190,22 +191,39 @@ function ActivateUserService(token) {
         try {
             // Verify the JWT token
             const decoded = (0, jsonwebtoken_1.verify)(token, String(config_1.SECRET_KEY));
-            // Update the user's verification status
-            const updatedUser = yield prisma_1.default.$transaction((t) => __awaiter(this, void 0, void 0, function* () {
-                return yield t.users.update({
-                    where: {
-                        email: decoded.email,
-                        is_verified: false // Only update if currently not verified
-                    },
-                    data: {
-                        is_verified: true
-                    }
-                });
-            })); // Ensure this closing brace and parenthesis are correctly placed
-            if (!updatedUser) {
-                throw new Error("User not found or already verified");
+            // Reject if this is a password reset token
+            if (decoded.type === 'password_reset') {
+                throw new Error("Invalid activation token");
             }
-            return updatedUser;
+            // First, check if user exists
+            const user = yield prisma_1.default.users.findUnique({
+                where: { email: decoded.email }
+            });
+            if (!user) {
+                throw new Error("User not found");
+            }
+            // If already verified, return success response
+            if (user.is_verified) {
+                return {
+                    success: true,
+                    message: "Account was already verified",
+                    user
+                };
+            }
+            // Update the user's verification status
+            const updatedUser = yield prisma_1.default.users.update({
+                where: {
+                    email: decoded.email
+                },
+                data: {
+                    is_verified: true
+                }
+            });
+            return {
+                success: true,
+                message: "Account successfully activated",
+                user: updatedUser
+            };
         }
         catch (err) {
             // Handle different error cases
@@ -373,3 +391,34 @@ class UserPasswordService {
     }
 }
 exports.UserPasswordService = UserPasswordService;
+function verifyResetTokenService(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            if (!token) {
+                throw new Error("Token is required");
+            }
+            // First verify the JWT
+            const decoded = (0, jsonwebtoken_1.verify)(token, String(config_1.SECRET_KEY));
+            // Then check if the token exists in the database and isn't expired
+            const resetToken = yield prisma_1.default.passwordResetToken.findFirst({
+                where: {
+                    token,
+                    expiresAt: { gt: new Date() }
+                }
+            });
+            if (!resetToken) {
+                throw new Error("Invalid or expired token");
+            }
+            return { valid: true, userId: decoded.userId };
+        }
+        catch (err) {
+            if (err instanceof jsonwebtoken_1.TokenExpiredError) {
+                throw new Error("Token has expired");
+            }
+            else if (err instanceof jsonwebtoken_1.JsonWebTokenError) {
+                throw new Error("Invalid token");
+            }
+            throw err; // Re-throw other errors
+        }
+    });
+}

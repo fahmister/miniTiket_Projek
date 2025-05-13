@@ -40,6 +40,11 @@ async function FindUserByEmail(email: string) {
             name: true,
           },
         },
+        profile_picture: true,
+        referral_code: true,
+        user_points: true,
+        discount_coupons: true,
+        expiry_points: true,
       },
       where: {
         email,
@@ -241,7 +246,11 @@ async function LoginService(param: ILoginParam) {
       email: users.email,
       first_name: users.first_name,
       last_name: users.last_name,
-      roleName: users.role.name
+      roleName: users.role.name,
+      profile_picture: users.profile_picture || "", // Ensure profile_picture is optional
+      referral_code: users.referral_code, // Add these
+      user_points: users.user_points,
+      discount_coupons: users.discount_coupons || [],
     }
 
     // sign is used to create a JWT token with the user's informatio
@@ -254,56 +263,64 @@ async function LoginService(param: ILoginParam) {
   }
 }
 
-async function UpdateUserService(file: Express.Multer.File, email: string) {
-  let url = "";
+async function UpdateUserService(file: Express.Multer.File, email: string): Promise<string> {
   try {
     const checkUser = await FindUserByEmail(email);
-
     if (!checkUser) throw new Error("User not found");
 
-    await prisma.$transaction(async (t: any) => {
-      const { secure_url } = await cloudinaryUpload(file);
-      url = secure_url;
-      const splitUrl = secure_url.split("/");
-      // splitUrl.length - 1 to get the last part of the URL
-      const fileName = splitUrl[splitUrl.length - 1];
+    // Upload to Cloudinary
+    const { secure_url } = await cloudinaryUpload(file);
 
+    if (!secure_url) {
+      throw new Error("Failed to upload to Cloudinary");
+    }
+
+    const splitUrl = secure_url.split("/");
+    // splitUrl.length - 1 to get the last part of the URL
+    const fileName = splitUrl.slice(-2).join('/');
+    
+    const result = await prisma.$transaction(async (t: any) => {
       // where is used to find the user by email and update the profile_picture field with the fileName
       await t.users.update({
         where: {
-          email: checkUser.email,
+          email: email
         },
         data: {
-          profile_picture: fileName,
+          profile_picture: fileName
         },
       });
+
+      return secure_url; // Return the full URL for the controller to process
     });
-  } catch (err) {
-    await cloudinaryRemove(url);
-    throw err;
-  }
-}
 
-async function UpdateUserService2(file: Express.Multer.File, email: string) {
-  try {
-    const checkUser = await FindUserByEmail(email);
-
-    if (!checkUser) throw new Error("User not found");
-
-    await prisma.$transaction(async (t: any) => {
-      await t.users.update({
-        where: {
-          email: checkUser.email,
-        },
-        data: {
-          profile_picture: file.filename,
-        },
-      });
-    });
+    return result; // Ensure the function always returns the secure_url
   } catch (err) {
     throw err;
   }
 }
+
+// async function UpdateUserService2(file: Express.Multer.File, email: string) {
+//   try {
+//     const checkUser = await FindUserByEmail(email);
+
+//     if (!checkUser) throw new Error("User not found");
+
+//     await prisma.$transaction(async (t: any) => {
+//       await t.users.update({
+//         where: {
+//           email: checkUser.email,
+//         },
+//         data: {
+//           profile_picture: file.filename,
+//         },
+//       });
+//     });
+//   } catch (err) {
+//     throw err;
+//   }
+// }
+
+
 
 async function VerifyUserService() {
   try {
@@ -417,12 +434,13 @@ async function verifyResetTokenService(token: string) {
 
 // Exporting the functions to be used in controllers directory
 export { 
+  FindUserByEmail,
   GetAll,
   RegisterService, 
   ActivateUserService,
   LoginService,
   UpdateUserService,
-  UpdateUserService2,
+  // UpdateUserService2,
   VerifyUserService,
   verifyResetTokenService
 };

@@ -17,6 +17,7 @@ const nodemailer_1 = require("../utils/nodemailer");
 const handlebars_1 = __importDefault(require("handlebars"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const config_1 = require("../config");
 // This helper function of sendReferralRewardEmail inside RegisterService function 
 function sendReferralRewardEmail(tx, referringUserId, newUserEmail) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -42,15 +43,20 @@ function sendReferralRewardEmail(tx, referringUserId, newUserEmail) {
             });
             // Send email to the referring user about their reward
             yield nodemailer_1.Transporter.sendMail({
-                from: process.env.EMAIL_FROM || "EOHelper Rewards",
+                from: `Your Event TuneInLive <${config_1.NODEMAILER_USER || 'no-reply@yourapp.com'}>`,
                 to: referringUser.email,
                 subject: "You've earned referral points!",
-                html
+                html,
+                attachments: [{
+                        filename: 'logo_miniTiket_v1.jpg',
+                        path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                        cid: 'logo' // same cid value as in the html img src of register-template.hbs
+                    }]
             });
         }
-        catch (error) {
-            console.error('Error sending referral notification:', error);
-            throw error;
+        catch (emailError) {
+            console.error('Error sending referral notification:', emailError);
+            throw emailError;
         }
     });
 }

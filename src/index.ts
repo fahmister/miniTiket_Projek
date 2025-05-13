@@ -19,7 +19,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(cors({
   origin: FE_URL,
-  credentials: true
+  credentials: true, // This is crucial
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -38,7 +39,7 @@ app.get(
 
 app.use("/events", EventRouter);
 app.use("/auth", AuthRouter);
-app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
+// app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 app.use("/api", VoucherRouter); // Gunakan base path yang konsisten
 
 app.listen(port, () => {

@@ -164,7 +164,8 @@ async function UpdateProfileController(
       referral_code: user.referral_code,
       user_points: user.user_points,
       discount_coupons: user.discount_coupons,
-      expiry_points: user.expiry_points
+      expiry_points: user.expiry_points,
+      PointTransactions: user.PointTransactions,
     };
 
     res.status(200).json(userData);

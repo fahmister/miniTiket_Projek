@@ -147,6 +147,9 @@ model PointTransactions {
   CreatedAt   DateTime @default(now())
   expiry_date DateTime // add expiry date for points
   is_expired  Boolean  @default(false)
+
+  @@index([userId, is_expired])
+  @@index([expiry_date])
 }
 
 model Role {

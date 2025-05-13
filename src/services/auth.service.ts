@@ -45,6 +45,15 @@ async function FindUserByEmail(email: string) {
         user_points: true,
         discount_coupons: true,
         expiry_points: true,
+        PointTransactions: {
+          where: { is_expired: false },
+          select: {
+            id: true,
+            amount: true,
+            expiry_date: true,
+            CreatedAt: true
+          }
+        },
       },
       where: {
         email,
@@ -252,6 +261,7 @@ async function LoginService(param: ILoginParam) {
       user_points: users.user_points,
       expiry_points: users.expiry_points,
       discount_coupons: users.discount_coupons || [],
+      PointTransactions: users.PointTransactions
     }
 
     // sign is used to create a JWT token with the user's informatio

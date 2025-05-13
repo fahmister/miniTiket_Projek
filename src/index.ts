@@ -11,8 +11,9 @@ import helmet from "helmet"
 import transactionRouter from './routers/transaction.router';
 
 
-const port = PORT || 8080;
+const port = PORT || 8000;
 const app: Application = express();
+// Removed duplicate declaration of cors
 
 // Add these middleware before your routes
 app.use(bodyParser.json());
@@ -20,7 +21,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(helmet());
 app.use(cors({
-  origin: FE_URL,
+  origin: "http://localhost:3000",
   credentials: true
 }));
 
@@ -39,10 +40,11 @@ app.get(
   );
 
 app.use('/api/transactions', transactionRouter);
-app.use("/events", EventRouter);
+app.use("/api/events", EventRouter);
 app.use("/auth", AuthRouter);
 app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 app.use("/api", VoucherRouter); // Gunakan base path yang konsisten
+
 
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);

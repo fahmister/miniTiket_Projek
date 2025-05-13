@@ -332,7 +332,6 @@ async function UpdateUserService(file: Express.Multer.File, email: string): Prom
 // }
 
 
-
 async function VerifyUserService() {
   try {
     console.log("this function is running");

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../lib/prisma";
 import { IUserReqParam } from "../custom";
+import { getOrganizerEventsService, updateEventService, deleteEventService } from "../services/event.services";
 
 export async function createEvent(req: Request, res: Response, next: NextFunction) {
   try {
@@ -89,6 +90,48 @@ export async function getEventDetails(req: Request, res: Response, next: NextFun
     if (!event) throw new Error("Event not found");
     
     res.status(200).json(event);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Event.controller for EO dashboard feature
+export async function getOrganizerEventsController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as IUserReqParam;
+    const events = await getOrganizerEventsService(user.id, req.query.category?.toString(), req.query.location?.toString());
+    res.status(200).json(events);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateEventController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as IUserReqParam;
+    const event = await updateEventService(
+      req.params.id,
+      user.id,
+      req.body
+    );
+    
+    res.status(200).json({
+      message: "Event updated successfully",
+      data: event
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteEventController(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as IUserReqParam;
+    await deleteEventService(req.params.id, user.id);
+    
+    res.status(200).json({
+      message: "Event deleted successfully"
+    });
   } catch (err) {
     next(err);
   }

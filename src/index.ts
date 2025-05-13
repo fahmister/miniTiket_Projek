@@ -11,7 +11,7 @@ import helmet from "helmet"
 import transactionRouter from './routers/transaction.router';
 
 
-const port = PORT || 8080;
+const port = PORT || 8000;
 const app: Application = express();
 
 // Add these middleware before your routes
@@ -40,7 +40,7 @@ app.get(
   );
 
 app.use('/api/transactions', transactionRouter);
-app.use("/events", EventRouter);
+app.use("/api/events", EventRouter);
 app.use("/auth", AuthRouter);
 // app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));
 app.use("/api", VoucherRouter); // Gunakan base path yang konsisten

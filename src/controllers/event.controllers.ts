@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import prisma from "../lib/prisma";
 import { IUserReqParam } from "../custom";
 import { getOrganizerEventsService, updateEventService, deleteEventService } from "../services/event.services";
-
+import { eventUpdateSchema } from "../schemas/event.schema";
 export async function createEvent(req: Request, res: Response, next: NextFunction) {
   try {
     const user = req.user as IUserReqParam;
@@ -10,8 +10,8 @@ export async function createEvent(req: Request, res: Response, next: NextFunctio
     // Validasi ID user
     if (!user?.id) throw new Error("User ID tidak valid");
 
-    const startDate = new Date(req.body.start_date);
-    const endDate = new Date(req.body.end_date);
+    const startDate = new Date(req.body.start_date); // Handles "YYYY-MM-DD" 
+    const endDate = new Date(req.body.end_date);     // Converts to UTC
 
     const event = await prisma.event.create({
       data: {
@@ -96,12 +96,29 @@ export async function getEventDetails(req: Request, res: Response, next: NextFun
 }
 
 // Event.controller for EO dashboard feature
-export async function getOrganizerEventsController(req: Request, res: Response, next: NextFunction) {
+export async function getOrganizerEventsController(
+  req: Request, 
+  res: Response, 
+  next: NextFunction
+): Promise<void> {
   try {
     const user = req.user as IUserReqParam;
-    const events = await getOrganizerEventsService(user.id, req.query.category?.toString(), req.query.location?.toString());
+    if (!user?.id) throw new Error("Unauthorized");
+
+    const events = await getOrganizerEventsService(
+      user.id, 
+      req.query.category?.toString(), 
+      req.query.location?.toString()
+    );
+
+     if (events.length === 0) {
+      res.status(404).json({ message: "No events found" });
+      return;
+    }
+    
     res.status(200).json(events);
   } catch (err) {
+    console.error("Error fetching organizer events:", err);
     next(err);
   }
 }
@@ -109,10 +126,12 @@ export async function getOrganizerEventsController(req: Request, res: Response, 
 export async function updateEventController(req: Request, res: Response, next: NextFunction) {
   try {
     const user = req.user as IUserReqParam;
+    const validatedData = eventUpdateSchema.parse(req.body);
+    
     const event = await updateEventService(
       req.params.id,
       user.id,
-      req.body
+      validatedData
     );
     
     res.status(200).json({

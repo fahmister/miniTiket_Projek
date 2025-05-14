@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodError } from "zod";
+import { eventSchema } from "../schemas/event.schema";
 
 
 // Middleware to validate request body against Zod schema

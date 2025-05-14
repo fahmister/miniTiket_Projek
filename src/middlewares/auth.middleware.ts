@@ -8,8 +8,8 @@ async function VerifyToken(req: Request, res: Response, next: NextFunction): Pro
         // Get the token from the request header
         // The token is expected to be in the format "Bearer <token>"
         // Split the token to get the actual token string
-        const token = req.header("Authorization")?.replace("Bearer ", "") || 
-                      req.cookies?.access_token;;
+        const token =  req.cookies?.access_token ||
+                        req.header("Authorization")?.replace("Bearer ", "")  
 
         if (!token) {
              res.status(401).json({ error: "Unauthorized" });
@@ -39,9 +39,10 @@ async function VerifyToken(req: Request, res: Response, next: NextFunction): Pro
 
 async function EOGuard(req: Request, res: Response, next: NextFunction) {
     try {
-        // Check if the user role is "Event Organizer" to restrict access of Customer
-        if (req.user?.roleName !== "Event Organizer") throw new Error("Restricted"); // Assuming "Event Organizer" corresponds to roleId 1
-
+        // Add trim() and case normalization
+        if (req.user?.roleName?.trim().toLowerCase() !== "event organizer") {
+            throw new Error("Restricted");
+        }
         next();
     } catch(err) {
         next(err)

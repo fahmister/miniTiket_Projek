@@ -1,4 +1,5 @@
 import prisma from "../lib/prisma";
+
 export async function searchEvents(searchTerm: string) {
     return await prisma.event.findMany({
       where: {
@@ -11,19 +12,20 @@ export async function searchEvents(searchTerm: string) {
   }
 
 
-
 // services used in EO dashboard
-export async function getOrganizerEventsService(userId: number, category?: string, location?: string) {
-  if (!userId) throw new Error("User ID is required");
-
+export async function getOrganizerEventsService(
+  userId: number, 
+  category?: string, 
+  location?: string
+) {
   return prisma.event.findMany({
   where: {
-      user_id: userId,
-      category,
-      location,
-    }, include: {
+      user_id: userId, // Changed from incorrect ID filtering
+      ...(category && { category }),
+      ...(location && { location })
+    }, 
+    include: {
       vouchers: true,
-      Transaction: true
     }
   });
 }
@@ -33,6 +35,9 @@ export async function updateEventService(
   userId: number, 
   updateData: any
 ) {
+  // Remove non-updatable fields and relations
+  const { id, created_at, user_id, organizer, vouchers, ...cleanData } = updateData;
+  
   // Verify event ownership first
   const existingEvent = await prisma.event.findFirst({
     where: { id: eventId, user_id: userId }
@@ -40,9 +45,19 @@ export async function updateEventService(
 
   if (!existingEvent) throw new Error("Event not found or unauthorized");
 
+  const updatedData = {
+    ...updateData,
+    start_date: new Date(updateData.start_date), // Ensure DateTime
+    end_date: new Date(updateData.end_date)
+  };
+
   return await prisma.event.update({
     where: { id: eventId },
-    data: updateData
+    data: {
+      ...cleanData,
+      start_date: new Date(cleanData.start_date),
+      end_date: new Date(cleanData.end_date)
+    }
   });
 }
 

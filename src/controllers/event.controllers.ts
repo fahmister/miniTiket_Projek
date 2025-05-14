@@ -1,7 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import prisma from "../lib/prisma";
 import { IUserReqParam } from "../custom";
-import { getOrganizerEventsService, updateEventService, deleteEventService } from "../services/event.services";
+import { getOrganizerEventsService, 
+        updateEventService, 
+        deleteEventService, 
+        getEventAttendeesService,
+        getEventStatisticsService
+        } from "../services/event.services";
 import { eventUpdateSchema } from "../schemas/event.schema";
 export async function createEvent(req: Request, res: Response, next: NextFunction) {
   try {
@@ -95,6 +100,8 @@ export async function getEventDetails(req: Request, res: Response, next: NextFun
   }
 }
 
+
+
 // Event.controller for EO dashboard feature
 export async function getOrganizerEventsController(
   req: Request, 
@@ -151,6 +158,38 @@ export async function deleteEventController(req: Request, res: Response, next: N
     res.status(200).json({
       message: "Event deleted successfully"
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// controllers/event.controllers.ts
+export async function getEventAttendeesController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const user = req.user as IUserReqParam;
+    const eventId = req.params.eventId;
+    const attendees = await getEventAttendeesService(eventId, user.id);
+    res.status(200).json(attendees);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getEventStatisticsController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const user = req.user as IUserReqParam;
+    const groupBy = req.query.groupBy as 'year' | 'month' | 'day' || 'month';
+    
+    const statistics = await getEventStatisticsService(user.id, groupBy);
+    res.status(200).json(statistics);
   } catch (err) {
     next(err);
   }

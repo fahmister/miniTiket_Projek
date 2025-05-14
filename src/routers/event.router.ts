@@ -4,7 +4,9 @@ import { createEvent,
         getEventDetails,
         getOrganizerEventsController,
         updateEventController, 
-        deleteEventController
+        deleteEventController,
+        getEventAttendeesController,
+        getEventStatisticsController
        } from "../controllers/event.controllers";
 import { VerifyToken, EOGuard } from "../middlewares/auth.middleware";
 import { ReqValidatorEvent } from "../middlewares/validator.middleware.event";
@@ -32,5 +34,8 @@ router.put("/:id", VerifyToken, EOGuard, ReqValidatorEvent(eventSchema), updateE
 
 router.delete("/:id", VerifyToken, EOGuard, deleteEventController);
 
+router.get("/organizer/attendees/:eventId", VerifyToken, EOGuard, getEventAttendeesController);
+
+router.get("/organizer/statistics", VerifyToken, EOGuard, getEventStatisticsController);
 
 export default router;

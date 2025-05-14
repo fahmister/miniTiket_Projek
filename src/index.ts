@@ -24,7 +24,7 @@ app.use(helmet());
 app.use(cors({
   origin: FE_URL || "http://localhost:3000",
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH' ],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 

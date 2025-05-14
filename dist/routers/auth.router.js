@@ -16,11 +16,16 @@ router.post("/register", (0, validator_middleware_1.default)(user_schema_1.regis
 router.get("/activate/:token", auth_controller_1.ActivationController);
 // router for login
 router.post("/login", (0, validator_middleware_1.default)(user_schema_1.loginSchema), auth_controller_1.LoginController);
+// router for Authorization testing of EO in Postman
+router.get("/eo-dashboard", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, auth_controller_1.EODashboardController);
 // use one of router.patch("/avatar")
 // path for upload avatar in cloudinary
 router.patch("/avatar", auth_middleware_1.VerifyToken, (0, multer_1.Multer)("memoryStorage").single("file"), auth_controller_1.UpdateProfileController);
 // path for upload avatar in local storage (public folder)
-router.patch("/avatar2", auth_middleware_1.VerifyToken, (0, multer_1.Multer)("diskStorage", "AVT", "AVATAR").single("file"), auth_controller_1.UpdateProfileController2);
+// router.patch("/avatar2", VerifyToken, Multer("diskStorage", "AVT", "AVATAR").single("file"), UpdateProfileController2);
+// router for get current user
+// This route is used to get the current user's information
+router.get("/me", auth_middleware_1.VerifyToken, auth_controller_1.getCurrentUserController);
 // router for get all users
 router.get("/users", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, auth_controller_1.GetAllController);
 // Password change - requires authentication

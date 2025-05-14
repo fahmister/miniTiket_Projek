@@ -13,12 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserPasswordService = void 0;
+exports.FindUserByEmail = FindUserByEmail;
 exports.GetAll = GetAll;
 exports.RegisterService = RegisterService;
 exports.ActivateUserService = ActivateUserService;
 exports.LoginService = LoginService;
 exports.UpdateUserService = UpdateUserService;
-exports.UpdateUserService2 = UpdateUserService2;
 exports.VerifyUserService = VerifyUserService;
 exports.verifyResetTokenService = verifyResetTokenService;
 const prisma_1 = __importDefault(require("../lib/prisma"));
@@ -62,6 +62,20 @@ function FindUserByEmail(email) {
                         select: {
                             name: true,
                         },
+                    },
+                    profile_picture: true,
+                    referral_code: true,
+                    user_points: true,
+                    discount_coupons: true,
+                    expiry_points: true,
+                    PointTransactions: {
+                        where: { is_expired: false },
+                        select: {
+                            id: true,
+                            amount: true,
+                            expiry_date: true,
+                            CreatedAt: true
+                        }
                     },
                 },
                 where: {
@@ -253,7 +267,13 @@ function LoginService(param) {
                 email: users.email,
                 first_name: users.first_name,
                 last_name: users.last_name,
-                roleName: users.role.name
+                roleName: users.role.name,
+                profile_picture: users.profile_picture || "", // Ensure profile_picture is optional
+                referral_code: users.referral_code, // Add these
+                user_points: users.user_points,
+                expiry_points: users.expiry_points,
+                discount_coupons: users.discount_coupons || [],
+                PointTransactions: users.PointTransactions
             };
             // sign is used to create a JWT token with the user's informatio
             // The token is signed with a secret key and has an expiration time of 1 hour
@@ -267,56 +287,55 @@ function LoginService(param) {
 }
 function UpdateUserService(file, email) {
     return __awaiter(this, void 0, void 0, function* () {
-        let url = "";
         try {
             const checkUser = yield FindUserByEmail(email);
             if (!checkUser)
                 throw new Error("User not found");
-            yield prisma_1.default.$transaction((t) => __awaiter(this, void 0, void 0, function* () {
-                const { secure_url } = yield (0, cloudinary_1.cloudinaryUpload)(file);
-                url = secure_url;
-                const splitUrl = secure_url.split("/");
-                // splitUrl.length - 1 to get the last part of the URL
-                const fileName = splitUrl[splitUrl.length - 1];
+            // Upload to Cloudinary
+            const { secure_url } = yield (0, cloudinary_1.cloudinaryUpload)(file);
+            if (!secure_url) {
+                throw new Error("Failed to upload to Cloudinary");
+            }
+            const splitUrl = secure_url.split("/");
+            // splitUrl.length - 1 to get the last part of the URL
+            const fileName = splitUrl.slice(-2).join('/');
+            const result = yield prisma_1.default.$transaction((t) => __awaiter(this, void 0, void 0, function* () {
                 // where is used to find the user by email and update the profile_picture field with the fileName
                 yield t.users.update({
                     where: {
-                        email: checkUser.email,
+                        email: email
                     },
                     data: {
-                        profile_picture: fileName,
+                        profile_picture: fileName
                     },
                 });
+                return secure_url; // Return the full URL for the controller to process
             }));
-        }
-        catch (err) {
-            yield (0, cloudinary_1.cloudinaryRemove)(url);
-            throw err;
-        }
-    });
-}
-function UpdateUserService2(file, email) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const checkUser = yield FindUserByEmail(email);
-            if (!checkUser)
-                throw new Error("User not found");
-            yield prisma_1.default.$transaction((t) => __awaiter(this, void 0, void 0, function* () {
-                yield t.users.update({
-                    where: {
-                        email: checkUser.email,
-                    },
-                    data: {
-                        profile_picture: file.filename,
-                    },
-                });
-            }));
+            return result; // Ensure the function always returns the secure_url
         }
         catch (err) {
             throw err;
         }
     });
 }
+// async function UpdateUserService2(file: Express.Multer.File, email: string) {
+//   try {
+//     const checkUser = await FindUserByEmail(email);
+//     if (!checkUser) throw new Error("User not found");
+//     await prisma.$transaction(async (t: any) => {
+//       await t.users.update({
+//         where: {
+//           email: checkUser.email,
+//         },
+//         data: {
+//           profile_picture: file.filename,
+//         },
+//       });
+//     });
+//   } catch (err) {
+//     throw err;
+//   }
+// }
 function VerifyUserService() {
     return __awaiter(this, void 0, void 0, function* () {
         try {

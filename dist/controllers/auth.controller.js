@@ -13,9 +13,10 @@ exports.AuthPasswordController = void 0;
 exports.RegisterController = RegisterController;
 exports.ActivationController = ActivationController;
 exports.LoginController = LoginController;
+exports.EODashboardController = EODashboardController;
 exports.GetAllController = GetAllController;
 exports.UpdateProfileController = UpdateProfileController;
-exports.UpdateProfileController2 = UpdateProfileController2;
+exports.getCurrentUserController = getCurrentUserController;
 exports.VerifyResetTokenController = VerifyResetTokenController;
 const auth_service_1 = require("../services/auth.service");
 const jsonwebtoken_1 = require("jsonwebtoken");
@@ -58,6 +59,7 @@ function ActivationController(req, res, next) {
             else {
                 res.status(400).json({ err: "An unknown error occurred" });
             }
+            next(err);
         }
     });
 }
@@ -66,6 +68,13 @@ function LoginController(req, res, next) {
         try {
             const data = yield (0, auth_service_1.LoginService)(req.body);
             const { user, token } = data; // Extract user and token from data
+            // Set secure, httpOnly cookie
+            res.cookie('access_token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 7 * 1000 // 1 week
+            });
             res.status(200).json({
                 message: "Login successful",
                 token: token, // Ensure the token is returned from LoginService
@@ -81,6 +90,20 @@ function LoginController(req, res, next) {
         }
     });
 }
+// In Postman, Authorization testing
+function EODashboardController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            res.status(200).json({
+                message: "Welcome to Event Organizer Dashboard",
+                user: req.user
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
 function UpdateProfileController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -88,9 +111,16 @@ function UpdateProfileController(req, res, next) {
             const { email } = req.user;
             if (!file)
                 throw new Error("file not found");
-            yield (0, auth_service_1.UpdateUserService)(file, email);
+            // This now returns the Cloudinary filename
+            const cloudinaryUrl = yield (0, auth_service_1.UpdateUserService)(file, email);
+            if (typeof cloudinaryUrl !== 'string' || !cloudinaryUrl) {
+                throw new Error("Invalid response from UpdateUserService");
+            }
+            const splitUrl = cloudinaryUrl.split('/');
+            const cloudinaryPath = splitUrl.slice(splitUrl.indexOf('upload') + 1).join('/');
             res.status(200).send({
                 message: "Profile update successfully",
+                fileName: cloudinaryPath // e.g. "v12345/profile.jpg"
             });
         }
         catch (err) {
@@ -98,24 +128,57 @@ function UpdateProfileController(req, res, next) {
         }
     });
 }
-function UpdateProfileController2(req, res, next) {
+function getCurrentUserController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { file } = req;
-            const { email } = req.user;
-            // console.log(file);
-            if (!file)
-                throw new Error("file not found");
-            yield (0, auth_service_1.UpdateUserService2)(file, email);
-            res.status(200).send({
-                message: "Profile update successfully",
-            });
+            if (!req.user) {
+                res.status(400).json({ message: "User is not authenticated" });
+                return;
+            }
+            const user = yield (0, auth_service_1.FindUserByEmail)(req.user.email);
+            if (!user) {
+                res.status(404).json({ message: "User not found" });
+                return;
+            }
+            // Return necessary user data without sensitive information
+            const userData = {
+                id: user.id,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                profile_picture: user.profile_picture || null, // Ensure profile_picture is optional
+                roleName: user.role.name,
+                referral_code: user.referral_code,
+                user_points: user.user_points,
+                discount_coupons: user.discount_coupons,
+                expiry_points: user.expiry_points,
+                PointTransactions: user.PointTransactions,
+            };
+            res.status(200).json(userData);
         }
         catch (err) {
             next(err);
         }
     });
 }
+// async function UpdateProfileController2(
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) {
+//   try {
+//     const { file } = req;
+//     const { email } = req.user as IUserReqParam;
+//     // console.log(file);
+//     if (!file) throw new Error("file not found");
+//     await UpdateUserService2(file, email);
+//     res.status(200).send({
+//       message: "Profile update successfully",
+//     });
+//   } catch (err) {
+//     next(err);
+//   }
+// }
 function GetAllController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -148,7 +211,7 @@ exports.AuthPasswordController = {
                     return;
                 }
                 yield authService.changePassword(userId, currentPassword, newPassword);
-                res.status(200).send({ message: "Password reset successful" });
+                res.status(200).json({ message: "Password Changed Successfully" });
             }
             catch (err) {
                 console.error('Password change error:', err);
@@ -158,7 +221,7 @@ exports.AuthPasswordController = {
                 if (err instanceof Error && err.message === 'Current password is incorrect') {
                     res.status(400).send({ message: err.message });
                 }
-                next();
+                next(err);
             }
         });
     },

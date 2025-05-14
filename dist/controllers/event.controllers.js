@@ -15,7 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createEvent = createEvent;
 exports.getEvents = getEvents;
 exports.getEventDetails = getEventDetails;
+exports.getOrganizerEventsController = getOrganizerEventsController;
+exports.updateEventController = updateEventController;
+exports.deleteEventController = deleteEventController;
 const prisma_1 = __importDefault(require("../lib/prisma"));
+const event_services_1 = require("../services/event.services");
+const event_schema_1 = require("../schemas/event.schema");
 function createEvent(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -23,8 +28,8 @@ function createEvent(req, res, next) {
             // Validasi ID user
             if (!(user === null || user === void 0 ? void 0 : user.id))
                 throw new Error("User ID tidak valid");
-            const startDate = new Date(req.body.start_date);
-            const endDate = new Date(req.body.end_date);
+            const startDate = new Date(req.body.start_date); // Handles "YYYY-MM-DD" 
+            const endDate = new Date(req.body.end_date); // Converts to UTC
             const event = yield prisma_1.default.event.create({
                 data: {
                     name: req.body.name,
@@ -101,6 +106,57 @@ function getEventDetails(req, res, next) {
             if (!event)
                 throw new Error("Event not found");
             res.status(200).json(event);
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
+// Event.controller for EO dashboard feature
+function getOrganizerEventsController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b;
+        try {
+            const user = req.user;
+            if (!(user === null || user === void 0 ? void 0 : user.id))
+                throw new Error("Unauthorized");
+            const events = yield (0, event_services_1.getOrganizerEventsService)(user.id, (_a = req.query.category) === null || _a === void 0 ? void 0 : _a.toString(), (_b = req.query.location) === null || _b === void 0 ? void 0 : _b.toString());
+            if (events.length === 0) {
+                res.status(404).json({ message: "No events found" });
+                return;
+            }
+            res.status(200).json(events);
+        }
+        catch (err) {
+            console.error("Error fetching organizer events:", err);
+            next(err);
+        }
+    });
+}
+function updateEventController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            const validatedData = event_schema_1.eventUpdateSchema.parse(req.body);
+            const event = yield (0, event_services_1.updateEventService)(req.params.id, user.id, validatedData);
+            res.status(200).json({
+                message: "Event updated successfully",
+                data: event
+            });
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
+function deleteEventController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            yield (0, event_services_1.deleteEventService)(req.params.id, user.id);
+            res.status(200).json({
+                message: "Event deleted successfully"
+            });
         }
         catch (err) {
             next(err);

@@ -35,23 +35,27 @@ function processReferralRewards(tx, newUserId, referringUserId, newUserEmail) {
             });
             console.log(`Updated referring user points: ${updatedUser.user_points}`);
             // 3. Create transaction records
-            const transactions = yield tx.pointTransactions.createMany({
+            // Create points transaction with expiration
+            const expiryDate = new Date();
+            expiryDate.setMonth(expiryDate.getMonth() + 3);
+            yield tx.pointTransactions.createMany({
                 data: [
                     {
                         userId: newUserId,
                         amount: 0,
                         type: 'REFERRAL_COUPON',
-                        description: 'Received welcome discount coupon'
+                        description: 'Received welcome discount coupon',
+                        expiry_date: expiryDate
                     },
                     {
                         userId: referringUserId,
                         amount: 10000,
                         type: 'REFERRAL_BONUS_POINTS',
-                        description: `Referral bonus from ${newUserEmail}`
+                        description: `Referral bonus from ${newUserEmail}`,
+                        expiry_date: expiryDate
                     }
                 ]
             });
-            console.log(`Created point transactions: ${JSON.stringify(transactions)}`);
             // 4. Send notification email
             yield (0, referralemail_service_1.sendReferralRewardEmail)(tx, referringUserId, newUserEmail);
         }

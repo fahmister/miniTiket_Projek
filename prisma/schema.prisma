@@ -100,18 +100,18 @@ model Users {
 
 model Transaction {
   id             String            @id @default(uuid())
-  total_amount   Float
-  payment_method String?
   status         TransactionStatus @default(waiting_for_payment)
+  total_amount   Float
+  payment_method String? // Tambahkan enum jika diperlukan
   user_id        Int
+  user           Users             @relation(fields: [user_id], references: [id])
   event_id       String
+  event          Event             @relation(fields: [event_id], references: [id])
   created_at     DateTime          @default(now())
   expired_at     DateTime?
-  quantity       Int
   payment_date   DateTime?
-  payment_proof  String?
-  event          Event             @relation(fields: [event_id], references: [id])
-  user           Users             @relation(fields: [user_id], references: [id])
+  quantity       Int
+  payment_proof  String? // Path ke bukti pembayaran
 }
 
 model PointTransactions {

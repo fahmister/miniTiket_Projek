@@ -119,22 +119,19 @@ model Users {
 }
 
 model Transaction {
-  id               String            @id @default(uuid())
-  status           TransactionStatus @default(waiting_for_payment)
+  id               String             @id @default(uuid())
+  status           TransactionStatus  @default(waiting_for_payment)
   total_amount     Float
-  payment_method   String? // manual/doku
+  payment_method   String? // Tambahkan enum jika diperlukan
   user_id          Int
-  user             Users             @relation(fields: [user_id], references: [id])
+  user             Users              @relation(fields: [user_id], references: [id])
   event_id         String
-  event            Event             @relation(fields: [event_id], references: [id])
-  doku_payment_id  String? // ID transaksi dari DOKU
-  doku_invoice     String?           @unique // invoice number dari DOKU
-  doku_payment_url String? // URL pembayaran DOKU
-  created_at       DateTime          @default(now())
-  expired_at       DateTime? // waktu kadaluarsa (2 jam)
-  payment_date     DateTime? // waktu pembayaran
-  quantity         Int // jumlah tiket
-  // tambahkan field lain sesuai kebutuhan
+  event            Event              @relation(fields: [event_id], references: [id])
+  created_at       DateTime           @default(now())
+  expired_at       DateTime?
+  payment_date     DateTime?
+  quantity         Int
+  payment_proof    String? // Path ke bukti pembayaran
 }
 
 model PointTransactions {

@@ -102,6 +102,7 @@ export async function getEventDetails(req: Request, res: Response, next: NextFun
 
 
 
+// Line Victor Adi Winata
 // Event.controller for EO dashboard feature
 export async function getOrganizerEventsController(
   req: Request, 
@@ -163,7 +164,6 @@ export async function deleteEventController(req: Request, res: Response, next: N
   }
 }
 
-// controllers/event.controllers.ts
 export async function getEventAttendeesController(
   req: Request,
   res: Response,

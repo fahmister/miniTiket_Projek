@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import axios from 'axios';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
 
 export async function createDokuTransaction(
   userId: number,
@@ -139,13 +138,12 @@ export async function createDokuTransaction(
         user_id: userId,
         event_id: eventId,
         total_amount: total,
-        payment_method: 'doku',
+        payment_method: 'manual',
         status: 'waiting_for_payment',
-        doku_payment_id: response.data.payment.id,
-        doku_invoice: order_id,
-        doku_payment_url: response.data.payment.url,
-        quantity,
-        expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000)
+        id: response.data.payment.id,
+        payment_proof: "",
+        expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        quantity: quantity
       }
     });
 
@@ -160,5 +158,65 @@ export async function createDokuTransaction(
       payment_url: response.data.payment.url,
       points_used: pointsUsed
     };
+  });
+}
+
+// Line Victor Adi Winata
+// This function is used on the EO daashboard to view, accept, and reject transactions
+export async function getOrganizerTransactions(userId: number) {
+  return prisma.transaction.findMany({
+    where: {
+      event: {
+        user_id: userId
+      }
+    },
+    include: {
+      event: {
+        select: { name: true }
+      },
+      user: {
+        select: { first_name: true, last_name: true, email: true }
+      }
+    }
+  });
+}
+
+export async function updateTransactionStatus(
+  transactionId: string,
+  userId: number,
+  newStatus: 'done' | 'rejected'
+) {
+  return prisma.$transaction(async (tx) => {
+    // Verify transaction ownership
+    const transaction = await tx.transaction.findFirst({
+      where: {
+        id: transactionId,
+        event: { user_id: userId }
+      },
+      include: { event: true }
+    });
+
+    if (!transaction) throw new Error("Transaction not found");
+    if (transaction.status === 'done') throw new Error("Transaction already completed");
+
+    // Update transaction status
+    const updatedTransaction = await tx.transaction.update({
+      where: { id: transactionId },
+      data: { status: newStatus }
+    });
+
+    // Update event seats if approved
+    if (newStatus === 'done') {
+      await tx.event.update({
+        where: { id: transaction.event_id },
+        data: {
+          seats: {
+            decrement: transaction.quantity
+          }
+        }
+      });
+    }
+
+    return updatedTransaction;
   });
 }

@@ -26,6 +26,9 @@ router.get('/ping', (req, res) => {
     res.send('PONG!');
   });
 
+
+  
+// Line Victor Adi Winata
 // Router for EO Dashboard
 // Add organizer-specific routes
 router.get("/organizer/events", VerifyToken, EOGuard, getOrganizerEventsController);

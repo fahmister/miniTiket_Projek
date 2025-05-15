@@ -13,6 +13,7 @@ export async function searchEvents(searchTerm: string) {
 
 
 
+// Line Victor Adi Winata
 // services used in EO dashboard
 export async function getOrganizerEventsService(
   userId: number, 
@@ -30,7 +31,6 @@ export async function getOrganizerEventsService(
     }
   });
 }
-
 
 export async function updateEventService(
   eventId: string, 
@@ -63,7 +63,6 @@ export async function updateEventService(
   });
 }
 
-
 export async function deleteEventService(eventId: string, userId: number) {
   // Verify ownership
   const existingEvent = await prisma.event.findFirst({
@@ -76,7 +75,6 @@ export async function deleteEventService(eventId: string, userId: number) {
     where: { id: eventId }
   });
 }
-
 
 export async function getEventAttendeesService(eventId: string, userId: number) {
   // Verify event ownership
@@ -98,7 +96,6 @@ export async function getEventAttendeesService(eventId: string, userId: number) 
     }
   });
 }
-
 
 export async function getEventStatisticsService(
   userId: number,

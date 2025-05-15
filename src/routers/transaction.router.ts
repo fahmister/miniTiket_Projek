@@ -1,22 +1,19 @@
+// transaction.router.ts
 import express from 'express';
-import { createTransaction, dokuWebhook, devPaymentSimulator } from '../controllers/transaction.controller';
+import { createTransaction } from '../controllers/transaction.controller';
+import { VerifyToken } from '../middlewares/auth.middleware';
+import multer from 'multer';
 
+const upload = multer({ dest: 'uploads/' });
 const router = express.Router();
 
-router.post('/', async (req, res, next) => {
-  try {
-    await createTransaction(req, res);
-  } catch (err) {
-    next(err);
-  }
-});
-router.post('/webhook', async (req, res, next) => {
-  try {
-    await dokuWebhook(req, res);
-  } catch (err) {
-    next(err);
-  }
-});
-router.get('/dev-payment/:trx_id', devPaymentSimulator);
+router.post(
+  '/:eventId',
+  VerifyToken,
+  upload.single('paymentProof'), // Middleware upload file
+  createTransaction
+);
+
+// ... rute lainnya
 
 export default router;

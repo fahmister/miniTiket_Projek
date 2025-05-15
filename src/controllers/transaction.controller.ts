@@ -1,150 +1,64 @@
-// src/controllers/transaction.controller.ts
-import { PrismaClient, TransactionStatus } from '@prisma/client';
-import crypto from 'crypto';
+// transaction.controller.ts
 import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { TransactionStatus } from '../prisma';
+import { uploadToCloudinary } from '../utils/cloudinary'; // Asumsi sudah ada utility upload
 
 const prisma = new PrismaClient();
 
 export const createTransaction = async (req: Request, res: Response) => {
-  const { event_id, user_id, quantity } = req.body;
-
   try {
-    // 1. Validasi event dan kursi
-    const event = await prisma.event.findUnique({ where: { id: event_id } });
+    const { eventId } = req.params;
+    const { quantity, usePoints, voucherCode, couponCode } = req.body;
+    const userId = req.user.id; // Asumsi menggunakan auth middleware
+    
+    // 1. Validasi event dan stok
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event || event.seats < quantity) {
-      return res.status(400).json({ error: "Kuota event tidak cukup" });
+      return res.status(400).json({ error: 'Not enough seats' });
     }
 
     // 2. Hitung total harga
-    const total = event.price * quantity;
-    const order_id = `DEV-TRX-${Date.now()}`;
+    let total = event.price * quantity;
+    
+    // 3. Apply points
+    if (usePoints) {
+      const user = await prisma.users.findUnique({ where: { id: userId } });
+      total = Math.max(total - user.user_points, 0);
+    }
 
-    // 3. Kurangi kursi event
-    await prisma.event.update({
-      where: { id: event_id },
-      data: { seats: { decrement: quantity } }
-    });
+    // 4. Handle payment proof upload
+    const paymentProof = req.file; // Asumsi menggunakan multer middleware
+    if (!paymentProof) {
+      return res.status(400).json({ error: 'Payment proof required' });
+    }
+    
+    const uploadResult = await uploadToCloudinary(paymentProof.path);
 
-    // 4. Generate payment URL yang benar
-    const paymentUrl = `http://localhost:8000/api/transactions/dev-payment/${order_id}`;
-
-    // 5. Simpan transaksi ke database
+    // 5. Create transaction
     const transaction = await prisma.transaction.create({
       data: {
-        user_id: parseInt(user_id),
-        event_id,
         total_amount: total,
-        payment_method: 'doku',
-        status: 'waiting_for_payment',
-        doku_payment_id: `dev-${crypto.randomUUID()}`,
-        doku_invoice: order_id,
-        doku_payment_url: paymentUrl,
+        user_id: userId,
+        event_id: eventId,
         quantity,
-        expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000)
+        expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 jam
+        payment_proof: uploadResult.secure_url,
+        status: 'waiting_for_admin'
       }
     });
 
-    res.status(201).json({
-      payment_url: paymentUrl,
-      transaction,
-      message: "DEV MODE: Silakan akses payment_url untuk simulasi pembayaran"
-    });
-
-  } catch (error) {
-    // Rollback kursi jika error
+    // 6. Kurangi kursi yang tersedia
     await prisma.event.update({
-      where: { id: event_id },
-      data: { seats: { increment: quantity } }
+      where: { id: eventId },
+      data: { seats: event.seats - quantity }
     });
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    res.status(500).json({ error: errorMessage });
+
+    res.status(201).json(transaction);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
-export const dokuWebhook = async (req: Request, res: Response) => {
-    try {
-      const { invoice_number, status } = req.body;
-  
-      if (!invoice_number || !status) {
-        return res.status(400).json({ error: "Data tidak lengkap" });
-      }
-  
-      // Gunakan findFirst jika doku_invoice belum @unique
-      const transaction = await prisma.transaction.findFirst({
-        where: { doku_invoice: invoice_number }
-      });
-  
-      if (!transaction) {
-        return res.status(404).json({ error: "Transaksi tidak ditemukan" });
-      }
-  
-      let newStatus: TransactionStatus;
-      switch (status) {
-        case 'SUCCESS':
-          newStatus = 'done';
-          break;
-        case 'FAILED':
-        case 'EXPIRED':
-          newStatus = 'expired';
-          await prisma.event.update({
-            where: { id: transaction.event_id },
-            data: { seats: { increment: transaction.quantity } }
-          });
-          break;
-        default:
-          newStatus = 'waiting_for_admin';
-      }
-  
-      await prisma.transaction.update({
-        where: { id: transaction.id },
-        data: { status: newStatus }
-      });
-  
-      res.status(200).json({
-        message: "Webhook processed",
-        transaction_id: transaction.id,
-        new_status: newStatus
-      });
-  
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      res.status(400).json({ error: errorMessage });
-    }
-  };
-  
 
-export const devPaymentSimulator = async (req: Request, res: Response) => {
-    const { trx_id } = req.params;
-    res.send(`
-      <h1>Simulator Pembayaran Development</h1>
-      <p>Invoice: ${trx_id}</p>
-      <button onclick="pay('SUCCESS')">Bayar (Success)</button>
-      <button onclick="pay('FAILED')">Gagal</button>
-      <script>
-        function pay(status) {
-          fetch('/api/transactions/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              invoice_number: '${trx_id}',
-              status: status
-            })
-          })
-          .then(res => res.json())
-          .then(data => alert('Status: ' + status + '\\n' + JSON.stringify(data)))
-          .catch(err => alert('Error: ' + err));
-        }
-      </script>
-    `);
-  };
-  
-
-// Helper functions
-const mapDokuStatus = (dokuStatus: string): TransactionStatus => {
-  switch(dokuStatus) {
-    case 'SUCCESS': return 'done';
-    case 'FAILED': return 'rejected';
-    case 'EXPIRED': return 'expired';
-    default: return 'waiting_for_admin';
-  }
-};
+// Tambahkan fungsi lainnya...

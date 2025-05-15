@@ -98,6 +98,7 @@ model Users {
   @@map("users")
 }
 
+// schema.prisma
 model Transaction {
   id               String            @id @default(uuid())
   total_amount     Float
@@ -109,13 +110,10 @@ model Transaction {
   expired_at       DateTime?
   quantity         Int
   payment_date     DateTime?
-  doku_invoice     String?           @unique
-  doku_payment_id  String?
-  doku_payment_url String?
+  payment_proof    String?           // Tambah ini untuk menyimpan URL bukti pembayaran
   event            Event             @relation(fields: [event_id], references: [id])
   user             Users             @relation(fields: [user_id], references: [id])
 }
-
 model PointTransactions {
   id          Int      @id @default(autoincrement())
   userId      Int

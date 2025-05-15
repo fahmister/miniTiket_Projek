@@ -9,7 +9,7 @@ import VoucherRouter from './routers/voucher.router';
 import { requestLogger } from "./middlewares/requestlogger.middleware";
 import cors from "cors"
 import helmet from "helmet"
-// import transactionRouter from './routers/transaction.router';
+import transactionRouter from './routers/transaction.router';
 
 
 const port = PORT || 8000;
@@ -42,7 +42,7 @@ app.get(
     }
   );
 
-// app.use('/api/transactions', transactionRouter);
+app.use('/api/transactions', transactionRouter);
 app.use("/api/events", EventRouter);
 app.use("/auth", AuthRouter);
 // app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));

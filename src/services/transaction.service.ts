@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma';
 import axios from 'axios';
 import crypto from 'crypto';
+import { sendTransactionStatusEmail } from './transaction.email.service';
 
 
 export async function createDokuTransaction(
@@ -184,7 +185,8 @@ export async function getOrganizerTransactions(userId: number) {
 export async function updateTransactionStatus(
   transactionId: string,
   userId: number,
-  newStatus: 'done' | 'rejected'
+  newStatus: 'done' | 'rejected',
+  reason?: string
 ) {
   return prisma.$transaction(async (tx) => {
     // Verify transaction ownership
@@ -193,11 +195,44 @@ export async function updateTransactionStatus(
         id: transactionId,
         event: { user_id: userId }
       },
-      include: { event: true }
+      include: { event: true, user: true }
     });
 
     if (!transaction) throw new Error("Transaction not found");
     if (transaction.status === 'done') throw new Error("Transaction already completed");
+
+    // Restore resources if rejecting
+    if (newStatus === 'rejected') {
+      // Restore seats
+      await tx.event.update({
+        where: { id: transaction.event_id },
+        data: { seats: { increment: transaction.quantity } }
+      });
+
+      // Restore points
+      if (transaction.point_used && transaction.point_used > 0) {
+        await tx.users.update({
+          where: { id: transaction.user_id },
+          data: { user_points: { increment: transaction.point_used } }
+        });
+      }
+
+      // Restore coupon
+      if (transaction.coupon_code) {
+        await tx.coupon.updateMany({
+          where: { code: transaction.coupon_code },
+          data: { current_usage: { decrement: 1 } }
+        });
+      }
+
+      // Restore voucher
+      if (transaction.voucher_code) {
+        await tx.voucher.updateMany({
+          where: { code: transaction.voucher_code },
+          data: { current_usage: { decrement: 1 } }
+        });
+      }
+    }
 
     // Update transaction status
     const updatedTransaction = await tx.transaction.update({
@@ -205,17 +240,12 @@ export async function updateTransactionStatus(
       data: { status: newStatus }
     });
 
-    // Update event seats if approved
-    if (newStatus === 'done') {
-      await tx.event.update({
-        where: { id: transaction.event_id },
-        data: {
-          seats: {
-            decrement: transaction.quantity
-          }
-        }
-      });
-    }
+    // Send email after transaction commits
+    await sendTransactionStatusEmail(
+      { ...transaction, ...updatedTransaction },
+      newStatus === 'done' ? 'approved' : 'rejected',
+      reason
+    );
 
     return updatedTransaction;
   });

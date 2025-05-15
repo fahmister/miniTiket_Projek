@@ -100,20 +100,24 @@ model Users {
 
 // schema.prisma
 model Transaction {
-  id               String            @id @default(uuid())
-  total_amount     Float
-  payment_method   String?
-  status           TransactionStatus @default(waiting_for_payment)
-  user_id          Int
-  event_id         String
-  created_at       DateTime          @default(now())
-  expired_at       DateTime?
-  quantity         Int
-  payment_date     DateTime?
-  payment_proof    String?           // Tambah ini untuk menyimpan URL bukti pembayaran
-  event            Event             @relation(fields: [event_id], references: [id])
-  user             Users             @relation(fields: [user_id], references: [id])
+  id             String            @id @default(uuid())
+  total_amount   Float
+  payment_method String?
+  status         TransactionStatus @default(waiting_for_payment)
+  user_id        Int
+  event_id       String
+  created_at     DateTime          @default(now())
+  expired_at     DateTime?
+  quantity       Int
+  payment_date   DateTime?
+  payment_proof  String? // Tambah ini untuk menyimpan URL bukti pembayaran
+  point_used     Int?              @default(0)
+  coupon_code    String?
+  voucher_code   String?
+  event          Event             @relation(fields: [event_id], references: [id])
+  user           Users             @relation(fields: [user_id], references: [id])
 }
+
 model PointTransactions {
   id          Int      @id @default(autoincrement())
   userId      Int

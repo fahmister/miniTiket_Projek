@@ -9,8 +9,9 @@ export class EmailService implements IEmailService {
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
     try {
       const templatePath = path.join(
-        __dirname, 
-        '../templates/password-reset.hbs'
+        process.cwd(),
+        'dist/src/templates',
+        "password-reset.hbs"
       );
       
       const templateSource = fs.readFileSync(templatePath, 'utf-8');
@@ -27,7 +28,7 @@ export class EmailService implements IEmailService {
         html,
         attachments: [{
           filename: 'logo_miniTiket_v1.jpg',
-          path: path.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+          path: path.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
           cid: 'logo'
         }]
       });

@@ -24,7 +24,7 @@ function sendVerificationEmail(email, token) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // Construct the path to the template file
-            const templatePath = path_1.default.join(__dirname, "../templates/register-template.hbs");
+            const templatePath = path_1.default.join(process.cwd(), 'dist/src/templates', "register-template.hbs");
             if (fs_1.default.existsSync(templatePath)) {
                 const templateSource = fs_1.default.readFileSync(templatePath, "utf-8");
                 const compiledTemplate = handlebars_1.default.compile(templateSource);
@@ -39,7 +39,7 @@ function sendVerificationEmail(email, token) {
                     html,
                     attachments: [{
                             filename: 'logo_miniTiket_v1.jpg',
-                            path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                            path: path_1.default.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
                             cid: 'logo' // same cid value as in the html img src of register-template.hbs
                         }]
                 });

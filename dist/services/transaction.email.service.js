@@ -21,7 +21,11 @@ const config_1 = require("../config");
 function sendTransactionStatusEmail(transaction, status, reason) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const templatePath = path_1.default.join(__dirname, `../templates/transaction-${status}.hbs`);
+            const templatePath = path_1.default.join(process.cwd(), 'dist/src/templates', // Now points to copied files in dist
+            `transaction-${status}.hbs`);
+            if (!fs_1.default.existsSync(templatePath)) {
+                throw new Error(`Email template not found at ${templatePath}`);
+            }
             const templateSource = fs_1.default.readFileSync(templatePath, "utf-8");
             const compiledTemplate = handlebars_1.default.compile(templateSource);
             const html = compiledTemplate({
@@ -43,7 +47,7 @@ function sendTransactionStatusEmail(transaction, status, reason) {
                 html,
                 attachments: [{
                         filename: 'logo_miniTiket_v1.jpg',
-                        path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                        path: path_1.default.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
                         cid: 'logo' // same cid value as in the html img src of register-template.hbs
                     }]
             });

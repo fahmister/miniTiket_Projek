@@ -5,7 +5,10 @@
             "src": "dist/index.js",
             "use": "@vercel/node",
             "config": {
-                "includesFiles": ["dist/**"]
+                "includeFiles": [
+                    "dist/src/templates/**",
+                    "dist/public/**"
+                ]
             }
         }
     ],

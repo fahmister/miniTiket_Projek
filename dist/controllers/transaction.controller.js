@@ -96,6 +96,7 @@ function updateTransactionStatusController(req, res, next) {
             });
         }
         catch (err) {
+            console.error("Transaction update error:", err); // Log detailed err
             next(err);
         }
     });

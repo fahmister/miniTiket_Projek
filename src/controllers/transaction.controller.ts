@@ -108,6 +108,7 @@ export async function updateTransactionStatusController(
       data: transaction
     });
   } catch (err) {
+    console.error("Transaction update error:", err); // Log detailed err
     next(err);
   }
 }

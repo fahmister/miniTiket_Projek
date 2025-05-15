@@ -22,7 +22,7 @@ class EmailService {
     sendPasswordResetEmail(email, token) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const templatePath = path_1.default.join(__dirname, '../templates/password-reset.hbs');
+                const templatePath = path_1.default.join(process.cwd(), 'dist/src/templates', "password-reset.hbs");
                 const templateSource = fs_1.default.readFileSync(templatePath, 'utf-8');
                 const template = handlebars_1.default.compile(templateSource);
                 // Update this to match your frontend login page with token parameter
@@ -35,7 +35,7 @@ class EmailService {
                     html,
                     attachments: [{
                             filename: 'logo_miniTiket_v1.jpg',
-                            path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                            path: path_1.default.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
                             cid: 'logo'
                         }]
                 });

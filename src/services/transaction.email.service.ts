@@ -12,9 +12,14 @@ export async function sendTransactionStatusEmail(
 ) {
   try {
     const templatePath = path.join(
-      __dirname,
-      `../templates/transaction-${status}.hbs`
+      process.cwd(),
+      'dist/src/templates', // Now points to copied files in dist
+      `transaction-${status}.hbs`
     );
+
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Email template not found at ${templatePath}`);
+    }
 
     const templateSource = fs.readFileSync(templatePath, "utf-8");
     const compiledTemplate = Handlebars.compile(templateSource);
@@ -38,9 +43,9 @@ export async function sendTransactionStatusEmail(
         : "Payment Declined - Action Required",
       html,
       attachments: [{
-        filename: 'logo_miniTiket_v1.jpg',
-        path: path.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
-        cid: 'logo' // same cid value as in the html img src of register-template.hbs
+         filename: 'logo_miniTiket_v1.jpg',
+         path: path.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
+         cid: 'logo' // same cid value as in the html img src of register-template.hbs
       }]
     });
   } catch (error) {

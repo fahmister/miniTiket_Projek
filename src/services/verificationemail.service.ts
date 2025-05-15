@@ -11,8 +11,9 @@ export async function sendVerificationEmail(email: string, token: string) {
     try {
         // Construct the path to the template file
         const templatePath = path.join(
-            __dirname, 
-            "../templates/register-template.hbs"
+            process.cwd(),
+            'dist/src/templates',
+            "register-template.hbs"
         );
   
         if (fs.existsSync(templatePath)) {
@@ -31,7 +32,7 @@ export async function sendVerificationEmail(email: string, token: string) {
                 html,
                 attachments: [{
                     filename: 'logo_miniTiket_v1.jpg',
-                    path: path.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                    path: path.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
                     cid: 'logo' // same cid value as in the html img src of register-template.hbs
                 }]
             })

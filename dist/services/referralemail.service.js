@@ -30,7 +30,7 @@ function sendReferralRewardEmail(tx, referringUserId, newUserEmail) {
                 console.error('Referring user not found');
                 return;
             }
-            const templatePath = path_1.default.join(__dirname, "../templates/referral-reward-notification.hbs");
+            const templatePath = path_1.default.join(process.cwd(), 'dist/src/templates', "referral-reward-notification.hbs");
             if (!fs_1.default.existsSync(templatePath)) {
                 throw new Error(`Template file not found at: ${templatePath}`);
             }
@@ -49,7 +49,7 @@ function sendReferralRewardEmail(tx, referringUserId, newUserEmail) {
                 html,
                 attachments: [{
                         filename: 'logo_miniTiket_v1.jpg',
-                        path: path_1.default.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+                        path: path_1.default.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
                         cid: 'logo' // same cid value as in the html img src of register-template.hbs
                     }]
             });

@@ -23,8 +23,9 @@ export async function sendReferralRewardEmail(
           }
 
           const templatePath = path.join(
-            __dirname,
-            "../templates/referral-reward-notification.hbs"
+            process.cwd(),
+            'dist/src/templates',
+            "referral-reward-notification.hbs"
           );
 
           if (!fs.existsSync(templatePath)) {
@@ -47,7 +48,7 @@ export async function sendReferralRewardEmail(
             html,
             attachments: [{
               filename: 'logo_miniTiket_v1.jpg',
-              path: path.join(__dirname, '../../public/logo/logo_miniTiket_v1.jpg'),
+              path: path.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
               cid: 'logo' // same cid value as in the html img src of register-template.hbs
             }]
           });

@@ -13,7 +13,7 @@ export async function sendTransactionStatusEmail(
   try {
     const templatePath = path.join(
       process.cwd(),
-      'dist/src/templates', // Now points to copied files in dist
+      '/src/templates', // Use src instead of dist in Vercel
       `transaction-${status}.hbs`
     );
 
@@ -25,8 +25,8 @@ export async function sendTransactionStatusEmail(
     const compiledTemplate = Handlebars.compile(templateSource);
     
     const html = compiledTemplate({
-      name: transaction.user.first_name,
-      eventName: transaction.event.name,
+      name: transaction.user.first_name || "Customer",
+      eventName: transaction.event.name || "Event",
       quantity: transaction.quantity,
       totalAmount: transaction.total_amount.toFixed(2),
       transactionId: transaction.id,
@@ -44,7 +44,7 @@ export async function sendTransactionStatusEmail(
       html,
       attachments: [{
          filename: 'logo_miniTiket_v1.jpg',
-         path: path.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
+         path: path.join(process.cwd(), 'public/logo/logo_miniTiket_v1.jpg'),
          cid: 'logo' // same cid value as in the html img src of register-template.hbs
       }]
     });

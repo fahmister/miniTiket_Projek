@@ -21,7 +21,7 @@ const config_1 = require("../config");
 function sendTransactionStatusEmail(transaction, status, reason) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const templatePath = path_1.default.join(process.cwd(), 'dist/src/templates', // Now points to copied files in dist
+            const templatePath = path_1.default.join(process.cwd(), '/src/templates', // Use src instead of dist in Vercel
             `transaction-${status}.hbs`);
             if (!fs_1.default.existsSync(templatePath)) {
                 throw new Error(`Email template not found at ${templatePath}`);
@@ -29,8 +29,8 @@ function sendTransactionStatusEmail(transaction, status, reason) {
             const templateSource = fs_1.default.readFileSync(templatePath, "utf-8");
             const compiledTemplate = handlebars_1.default.compile(templateSource);
             const html = compiledTemplate({
-                name: transaction.user.first_name,
-                eventName: transaction.event.name,
+                name: transaction.user.first_name || "Customer",
+                eventName: transaction.event.name || "Event",
                 quantity: transaction.quantity,
                 totalAmount: transaction.total_amount.toFixed(2),
                 transactionId: transaction.id,
@@ -47,7 +47,7 @@ function sendTransactionStatusEmail(transaction, status, reason) {
                 html,
                 attachments: [{
                         filename: 'logo_miniTiket_v1.jpg',
-                        path: path_1.default.join(process.cwd(), 'dist/public/logo/logo_miniTiket_v1.jpg'),
+                        path: path_1.default.join(process.cwd(), 'public/logo/logo_miniTiket_v1.jpg'),
                         cid: 'logo' // same cid value as in the html img src of register-template.hbs
                     }]
             });

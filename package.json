@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon",
     "test": "jest",
-    "build": "tsc && node scripts/copy-assets.js",
+    "build": "npx tsc && node scripts/copy-assets.js",
     "start": "npm run build && node dist/index.js",
     "postinstall": "prisma generate"
   },

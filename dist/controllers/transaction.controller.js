@@ -8,141 +8,95 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.devPaymentSimulator = exports.dokuWebhook = exports.createTransaction = void 0;
-// src/controllers/transaction.controller.ts
+exports.createTransaction = void 0;
+exports.getTransactionsController = getTransactionsController;
+exports.updateTransactionStatusController = updateTransactionStatusController;
 const client_1 = require("@prisma/client");
-const crypto_1 = __importDefault(require("crypto"));
+const cloudinary_1 = require("../utils/cloudinary"); // Asumsi sudah ada utility upload
+const transaction_service_1 = require("../services/transaction.service");
 const prisma = new client_1.PrismaClient();
 const createTransaction = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { event_id, user_id, quantity } = req.body;
     try {
-        // 1. Validasi event dan kursi
-        const event = yield prisma.event.findUnique({ where: { id: event_id } });
+        const { eventId } = req.params;
+        const { quantity, usePoints, voucherCode, couponCode } = req.body;
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ error: 'Unauthorized: user not found' });
+        }
+        const userId = req.user.id; // Asumsi menggunakan auth middleware
+        // 1. Validasi event dan stok
+        const event = yield prisma.event.findUnique({ where: { id: eventId } });
         if (!event || event.seats < quantity) {
-            return res.status(400).json({ error: "Kuota event tidak cukup" });
+            return res.status(400).json({ error: 'Not enough seats' });
         }
         // 2. Hitung total harga
-        const total = event.price * quantity;
-        const order_id = `DEV-TRX-${Date.now()}`;
-        // 3. Kurangi kursi event
-        yield prisma.event.update({
-            where: { id: event_id },
-            data: { seats: { decrement: quantity } }
-        });
-        // 4. Generate payment URL yang benar
-        const paymentUrl = `http://localhost:8000/api/transactions/dev-payment/${order_id}`;
-        // 5. Simpan transaksi ke database
+        let total = event.price * quantity;
+        // 3. Apply points
+        if (usePoints) {
+            const user = yield prisma.users.findUnique({ where: { id: userId } });
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            total = Math.max(total - user.user_points, 0);
+        }
+        // 4. Handle payment proof upload
+        const paymentProof = req.file; // Asumsi menggunakan multer middleware
+        if (!paymentProof) {
+            return res.status(400).json({ error: 'Payment proof required' });
+        }
+        const uploadResult = yield (0, cloudinary_1.cloudinaryUpload)(paymentProof);
+        // 5. Create transaction
         const transaction = yield prisma.transaction.create({
             data: {
-                user_id: parseInt(user_id),
-                event_id,
                 total_amount: total,
-                payment_method: 'doku',
-                status: 'waiting_for_payment',
-                doku_payment_id: `dev-${crypto_1.default.randomUUID()}`,
-                doku_invoice: order_id,
-                doku_payment_url: paymentUrl,
+                user_id: userId,
+                event_id: eventId,
                 quantity,
-                expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000)
+                expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 jam
+                payment_proof: uploadResult.secure_url,
+                status: 'waiting_for_admin'
             }
         });
-        res.status(201).json({
-            payment_url: paymentUrl,
-            transaction,
-            message: "DEV MODE: Silakan akses payment_url untuk simulasi pembayaran"
+        // 6. Kurangi kursi yang tersedia
+        yield prisma.event.update({
+            where: { id: eventId },
+            data: { seats: event.seats - quantity }
         });
+        res.status(201).json(transaction);
     }
     catch (error) {
-        // Rollback kursi jika error
-        yield prisma.event.update({
-            where: { id: event_id },
-            data: { seats: { increment: quantity } }
-        });
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(500).json({ error: errorMessage });
+        console.error(error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 exports.createTransaction = createTransaction;
-const dokuWebhook = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { invoice_number, status } = req.body;
-        if (!invoice_number || !status) {
-            return res.status(400).json({ error: "Data tidak lengkap" });
+// Line Victor Adi Winata
+// This controller is created for EO to view, accept, and reject transactions at the EO dashboard
+function getTransactionsController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            const transactions = yield (0, transaction_service_1.getOrganizerTransactions)(user.id);
+            res.status(200).json(transactions);
         }
-        // Gunakan findFirst jika doku_invoice belum @unique
-        const transaction = yield prisma.transaction.findFirst({
-            where: { doku_invoice: invoice_number }
-        });
-        if (!transaction) {
-            return res.status(404).json({ error: "Transaksi tidak ditemukan" });
+        catch (err) {
+            next(err);
         }
-        let newStatus;
-        switch (status) {
-            case 'SUCCESS':
-                newStatus = 'done';
-                break;
-            case 'FAILED':
-            case 'EXPIRED':
-                newStatus = 'expired';
-                yield prisma.event.update({
-                    where: { id: transaction.event_id },
-                    data: { seats: { increment: transaction.quantity } }
-                });
-                break;
-            default:
-                newStatus = 'waiting_for_admin';
+    });
+}
+function updateTransactionStatusController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            const { status } = req.body;
+            const transaction = yield (0, transaction_service_1.updateTransactionStatus)(req.params.id, user.id, status);
+            res.status(200).json({
+                message: "Transaction updated successfully",
+                data: transaction
+            });
         }
-        yield prisma.transaction.update({
-            where: { id: transaction.id },
-            data: { status: newStatus }
-        });
-        res.status(200).json({
-            message: "Webhook processed",
-            transaction_id: transaction.id,
-            new_status: newStatus
-        });
-    }
-    catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        res.status(400).json({ error: errorMessage });
-    }
-});
-exports.dokuWebhook = dokuWebhook;
-const devPaymentSimulator = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { trx_id } = req.params;
-    res.send(`
-      <h1>Simulator Pembayaran Development</h1>
-      <p>Invoice: ${trx_id}</p>
-      <button onclick="pay('SUCCESS')">Bayar (Success)</button>
-      <button onclick="pay('FAILED')">Gagal</button>
-      <script>
-        function pay(status) {
-          fetch('/api/transactions/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              invoice_number: '${trx_id}',
-              status: status
-            })
-          })
-          .then(res => res.json())
-          .then(data => alert('Status: ' + status + '\\n' + JSON.stringify(data)))
-          .catch(err => alert('Error: ' + err));
+        catch (err) {
+            next(err);
         }
-      </script>
-    `);
-});
-exports.devPaymentSimulator = devPaymentSimulator;
-// Helper functions
-const mapDokuStatus = (dokuStatus) => {
-    switch (dokuStatus) {
-        case 'SUCCESS': return 'done';
-        case 'FAILED': return 'rejected';
-        case 'EXPIRED': return 'expired';
-        default: return 'waiting_for_admin';
-    }
-};
+    });
+}

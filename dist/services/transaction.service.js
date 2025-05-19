@@ -13,13 +13,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createDokuTransaction = createDokuTransaction;
-const client_1 = require("@prisma/client");
+exports.getOrganizerTransactions = getOrganizerTransactions;
+exports.updateTransactionStatus = updateTransactionStatus;
+const prisma_1 = __importDefault(require("../lib/prisma"));
 const axios_1 = __importDefault(require("axios"));
 const crypto_1 = __importDefault(require("crypto"));
-const prisma = new client_1.PrismaClient();
 function createDokuTransaction(userId, eventId, quantity, options) {
     return __awaiter(this, void 0, void 0, function* () {
-        return yield prisma.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+        return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
             // 1. Validasi Event
             const event = yield tx.event.findUnique({
                 where: { id: eventId },
@@ -132,13 +133,12 @@ function createDokuTransaction(userId, eventId, quantity, options) {
                     user_id: userId,
                     event_id: eventId,
                     total_amount: total,
-                    payment_method: 'doku',
+                    payment_method: 'manual',
                     status: 'waiting_for_payment',
-                    doku_payment_id: response.data.payment.id,
-                    doku_invoice: order_id,
-                    doku_payment_url: response.data.payment.url,
-                    quantity,
-                    expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000)
+                    id: response.data.payment.id,
+                    payment_proof: "",
+                    expired_at: new Date(Date.now() + 2 * 60 * 60 * 1000),
+                    quantity: quantity
                 }
             });
             // 8. Kurangi Kursi Event
@@ -151,6 +151,62 @@ function createDokuTransaction(userId, eventId, quantity, options) {
                 payment_url: response.data.payment.url,
                 points_used: pointsUsed
             };
+        }));
+    });
+}
+// Line Victor Adi Winata
+// This function is used on the EO daashboard to view, accept, and reject transactions
+function getOrganizerTransactions(userId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return prisma_1.default.transaction.findMany({
+            where: {
+                event: {
+                    user_id: userId
+                }
+            },
+            include: {
+                event: {
+                    select: { name: true }
+                },
+                user: {
+                    select: { first_name: true, last_name: true, email: true }
+                }
+            }
+        });
+    });
+}
+function updateTransactionStatus(transactionId, userId, newStatus) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+            // Verify transaction ownership
+            const transaction = yield tx.transaction.findFirst({
+                where: {
+                    id: transactionId,
+                    event: { user_id: userId }
+                },
+                include: { event: true }
+            });
+            if (!transaction)
+                throw new Error("Transaction not found");
+            if (transaction.status === 'done')
+                throw new Error("Transaction already completed");
+            // Update transaction status
+            const updatedTransaction = yield tx.transaction.update({
+                where: { id: transactionId },
+                data: { status: newStatus }
+            });
+            // Update event seats if approved
+            if (newStatus === 'done') {
+                yield tx.event.update({
+                    where: { id: transaction.event_id },
+                    data: {
+                        seats: {
+                            decrement: transaction.quantity
+                        }
+                    }
+                });
+            }
+            return updatedTransaction;
         }));
     });
 }

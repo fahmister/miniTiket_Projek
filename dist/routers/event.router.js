@@ -14,9 +14,12 @@ router.get("/:id", event_controllers_1.getEventDetails);
 router.get('/ping', (req, res) => {
     res.send('PONG!');
 });
+// Line Victor Adi Winata
 // Router for EO Dashboard
 // Add organizer-specific routes
 router.get("/organizer/events", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, event_controllers_1.getOrganizerEventsController);
 router.put("/:id", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, (0, validator_middleware_event_1.ReqValidatorEvent)(event_schema_1.eventSchema), event_controllers_1.updateEventController);
 router.delete("/:id", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, event_controllers_1.deleteEventController);
+router.get("/organizer/attendees/:eventId", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, event_controllers_1.getEventAttendeesController);
+router.get("/organizer/statistics", auth_middleware_1.VerifyToken, auth_middleware_1.EOGuard, event_controllers_1.getEventStatisticsController);
 exports.default = router;

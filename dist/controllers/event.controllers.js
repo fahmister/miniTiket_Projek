@@ -18,6 +18,8 @@ exports.getEventDetails = getEventDetails;
 exports.getOrganizerEventsController = getOrganizerEventsController;
 exports.updateEventController = updateEventController;
 exports.deleteEventController = deleteEventController;
+exports.getEventAttendeesController = getEventAttendeesController;
+exports.getEventStatisticsController = getEventStatisticsController;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 const event_services_1 = require("../services/event.services");
 const event_schema_1 = require("../schemas/event.schema");
@@ -112,6 +114,7 @@ function getEventDetails(req, res, next) {
         }
     });
 }
+// Line Victor Adi Winata
 // Event.controller for EO dashboard feature
 function getOrganizerEventsController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -157,6 +160,32 @@ function deleteEventController(req, res, next) {
             res.status(200).json({
                 message: "Event deleted successfully"
             });
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
+function getEventAttendeesController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            const eventId = req.params.eventId;
+            const attendees = yield (0, event_services_1.getEventAttendeesService)(eventId, user.id);
+            res.status(200).json(attendees);
+        }
+        catch (err) {
+            next(err);
+        }
+    });
+}
+function getEventStatisticsController(req, res, next) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const user = req.user;
+            const groupBy = req.query.groupBy || 'month';
+            const statistics = yield (0, event_services_1.getEventStatisticsService)(user.id, groupBy);
+            res.status(200).json(statistics);
         }
         catch (err) {
             next(err);

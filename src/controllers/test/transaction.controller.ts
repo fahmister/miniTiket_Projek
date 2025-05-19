@@ -1,5 +1,6 @@
 import request from 'supertest';
-import app from '../../../app';
+// Update the import path below if your app instance is located elsewhere
+import { app } from '../../server'; // Update this path to the actual file exporting your app instance
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 

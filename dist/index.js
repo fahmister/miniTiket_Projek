@@ -14,7 +14,7 @@ const voucher_router_1 = __importDefault(require("./routers/voucher.router"));
 const requestlogger_middleware_1 = require("./middlewares/requestlogger.middleware");
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-// import transactionRouter from './routers/transaction.router';
+const transaction_router_1 = __importDefault(require("./routers/transaction.router"));
 const port = config_1.PORT || 8000;
 const app = (0, express_1.default)();
 app.use((0, cookie_parser_1.default)());
@@ -36,7 +36,7 @@ app.get("/api", (req, res, next) => {
 }, (req, res, next) => {
     res.status(200).send("This is API");
 });
-// app.use('/api/transactions', transactionRouter);
+app.use('/api/transactions', transaction_router_1.default);
 app.use("/api/events", event_router_1.default);
 app.use("/auth", auth_router_1.default);
 // app.use("/avt", express.static(path.join(__dirname, "./public/avatar")));

@@ -27,6 +27,8 @@ exports.searchEvents = searchEvents;
 exports.getOrganizerEventsService = getOrganizerEventsService;
 exports.updateEventService = updateEventService;
 exports.deleteEventService = deleteEventService;
+exports.getEventAttendeesService = getEventAttendeesService;
+exports.getEventStatisticsService = getEventStatisticsService;
 const prisma_1 = __importDefault(require("../lib/prisma"));
 function searchEvents(searchTerm) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -40,6 +42,7 @@ function searchEvents(searchTerm) {
         });
     });
 }
+// Line Victor Adi Winata
 // services used in EO dashboard
 function getOrganizerEventsService(userId, category, location) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -79,5 +82,81 @@ function deleteEventService(eventId, userId) {
         return yield prisma_1.default.event.delete({
             where: { id: eventId }
         });
+    });
+}
+function getEventAttendeesService(eventId, userId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Verify event ownership
+        const event = yield prisma_1.default.event.findFirst({
+            where: { id: eventId, user_id: userId }
+        });
+        if (!event)
+            throw new Error("Event not found or unauthorized");
+        // Fetch transactions (attendees)
+        return yield prisma_1.default.transaction.findMany({
+            where: {
+                event_id: eventId,
+                status: 'done' // Only completed transactions
+            },
+            include: {
+                user: {
+                    select: { first_name: true, last_name: true }
+                }
+            }
+        });
+    });
+}
+function getEventStatisticsService(userId, groupBy) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c;
+        // Validate groupBy parameter
+        if (!['year', 'month', 'day'].includes(groupBy)) {
+            throw new Error('Invalid grouping parameter');
+        }
+        // Get date format based on grouping
+        const dateFormat = {
+            year: 'YYYY',
+            month: 'YYYY-MM',
+            day: 'YYYY-MM-DD'
+        }[groupBy];
+        // Get events statistics
+        const events = yield prisma_1.default.$queryRaw `
+    SELECT
+      TO_CHAR("created_at"::DATE, ${dateFormat}) AS period,
+      COUNT(*)::INT AS event_count
+    FROM "Event"
+    WHERE "user_id" = ${userId}
+    GROUP BY period
+    ORDER BY period
+  `;
+        // Get transaction statistics
+        const transactions = yield prisma_1.default.$queryRaw `
+    SELECT
+      TO_CHAR(t."created_at"::DATE, ${dateFormat}) AS period,
+      COALESCE(SUM(t."quantity"), 0)::INT AS tickets_sold,
+      COALESCE(SUM(t."total_amount"), 0)::FLOAT AS total_revenue
+    FROM "Transaction" t
+    INNER JOIN "Event" e ON t."event_id" = e."id"
+    WHERE e."user_id" = ${userId} AND t."status" = 'done'
+    GROUP BY period
+    ORDER BY period
+  `;
+        // Combine results
+        const combinedData = [];
+        const eventMap = new Map(events.map((e) => [e.period, e]));
+        const transactionMap = new Map(transactions.map((t) => [t.period, t]));
+        const allPeriods = new Set([
+            ...events.map((e) => e.period),
+            ...transactions.map((t) => t.period)
+        ]);
+        for (const period of Array.from(allPeriods).sort()) {
+            combinedData.push({
+                period,
+                event_count: ((_a = eventMap.get(period)) === null || _a === void 0 ? void 0 : _a.event_count) || 0,
+                tickets_sold: ((_b = transactionMap.get(period)) === null || _b === void 0 ? void 0 : _b.tickets_sold) || 0,
+                total_revenue: ((_c = transactionMap.get(period)) === null || _c === void 0 ? void 0 : _c.total_revenue) || 0
+            });
+        }
+        return combinedData;
     });
 }

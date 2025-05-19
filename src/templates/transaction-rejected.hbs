@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <img
+      src="cid:logo" 
+      alt="miniTiket Logo" 
+      style= "width: 30%; display: block; 
+              margin: auto; height: 30%;"
+    >
+    <div style="padding: 15px 10px;">
+        <h2 style="text-align: center; color: #023047;">
+            Sorry, your payment was declined
+        </h2>
+    </div>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        p { margin-top: 8px; margin-bottom: 8px; text-align: justify }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Payment Declined ❌</h2>
+        <p>Hello {{name}},</p>
+        <p>Your transaction for <strong>{{eventName}}</strong> was declined due to:</p>
+        <p class="reason">{{reason}}</p>
+        {{#if pointsRestored}}
+        <p>We've restored {{pointsRestored}} points to your account.</p>
+        {{/if}}
+        {{#if couponRestored}}
+        <p>The coupon "{{couponRestored}}" has been returned to your account.</p>
+        {{/if}}
+        <p>Please contact support if you have any questions.</p>
+    <div>
+      <p>Thank you!</p>
+      <p>Best regards,</p>
+      <p>TuneInLive Team</p>
+    </div>
+    </div>
+</body>
+</html>

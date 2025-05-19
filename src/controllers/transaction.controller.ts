@@ -94,12 +94,13 @@ export async function updateTransactionStatusController(
 ) {
   try {
     const user = req.user as IUserReqParam;
-    const { status } = req.body;
+    const { status, reason } = req.body;
     
     const transaction = await updateTransactionStatus(
       req.params.id,
       user.id,
-      status
+      status,
+      reason
     );
     
     res.status(200).json({

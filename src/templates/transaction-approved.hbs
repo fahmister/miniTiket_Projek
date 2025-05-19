@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <img
+      src="cid:logo" 
+      alt="miniTiket Logo" 
+      style= "width: 30%; display: block; 
+              margin: auto; height: 30%;"
+    >
+    <div style="padding: 15px 10px;">
+        <h2 style="text-align: center; color: #023047;">
+           Thank you for your purchase! 🎉
+        </h2>
+    </div>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; }
+        p { margin-top: 8px; margin-bottom: 8px; text-align: justify }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Payment Approved! 🎉</h2>
+        <p>Hello {{name}},</p>
+        <p>Your transaction for <strong>{{eventName}}</strong> has been approved!</p>
+        <p>Transaction Details:</p>
+        <ul>
+            <li>Quantity: {{quantity}} tickets</li>
+            <li>Total Paid: ${{totalAmount}}</li>
+            <li>Transaction ID: {{transactionId}}</li>
+        </ul>
+        <p>You can now access your tickets in your account dashboard.</p>
+        
+        <div>
+            <p>Thank you!</p>
+            <p>Best regards,</p>
+            <p>TuneInLive Team</p>
+        </div>
+    </div>
+</body>
+</html>

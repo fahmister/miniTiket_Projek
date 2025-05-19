@@ -88,8 +88,8 @@ function updateTransactionStatusController(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const user = req.user;
-            const { status } = req.body;
-            const transaction = yield (0, transaction_service_1.updateTransactionStatus)(req.params.id, user.id, status);
+            const { status, reason } = req.body;
+            const transaction = yield (0, transaction_service_1.updateTransactionStatus)(req.params.id, user.id, status, reason);
             res.status(200).json({
                 message: "Transaction updated successfully",
                 data: transaction

@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma';
 import axios from 'axios';
 import crypto from 'crypto';
+import { sendTransactionStatusEmail } from './transaction.email.service';
 
 
 export async function createDokuTransaction(
@@ -13,6 +14,7 @@ export async function createDokuTransaction(
     usePoints?: boolean;
   }
 ) {
+  try {
   return await prisma.$transaction(async (tx) => {
     // 1. Validasi Event
     const event = await tx.event.findUnique({
@@ -88,12 +90,16 @@ export async function createDokuTransaction(
     }
 
     // 6. Generate DOKU Payment
-    const clientId = process.env.DOKU_CLIENT_ID!;
+    const clientId = process.env.DOKU_CLIENT_ID;
     const secretKey = process.env.DOKU_SECRET_KEY!;
     const requestId = crypto.randomUUID();
     const requestTimestamp = new Date().toISOString();
     const path = '/checkout/v1/payment';
     const order_id = `TRX-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+    if (!clientId || !secretKey) {
+      throw new Error("DOKU credentials not configured");
+    }
 
     const body = {
       order: {
@@ -113,7 +119,16 @@ export async function createDokuTransaction(
       }
     };
 
-    const signatureComponent = `Client-Id:${clientId}\nRequest-Id:${requestId}\nRequest-Timestamp:${requestTimestamp}\nRequest-Target:${path}\n${JSON.stringify(body)}`;
+    const digest = crypto.createHash('sha256').update(JSON.stringify(body)).digest('base64');
+    
+    const signatureComponent = [
+      `Client-Id:${clientId}`,
+      `Request-Id:${requestId}`,
+      `Request-Timestamp:${requestTimestamp}`,
+      `Request-Target:${path}`,
+      `Digest:${digest}`
+    ].join('\n');
+    
     const signature = crypto.createHmac('sha256', secretKey)
       .update(signatureComponent)
       .digest('base64');
@@ -122,15 +137,30 @@ export async function createDokuTransaction(
       ? 'https://api.doku.com/checkout/v1/payment'
       : 'https://api-sandbox.doku.com/checkout/v1/payment';
 
-    const response = await axios.post(dokuUrl, body, {
+    let response;
+    try {
+      response = await axios.post(dokuUrl, body, {
       headers: {
         'Content-Type': 'application/json',
         'Client-Id': clientId,
         'Request-Id': requestId,
         'Request-Timestamp': requestTimestamp,
-        'Signature': `HMACSHA256=${signature}`
+        'Signature': `HMACSHA256=${signature}`,
+        timeout: 8000 // 8 seconds (leave 2s buffer for Vercel)
       }
     });
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'response' in error) {
+    // @ts-ignore
+    console.error("DOKU API Error:", (error as any).response.data);
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+    // @ts-ignore
+    console.error("Network Error:", (error as any).message);
+    } else {
+    console.error("Unknown error occurred");
+    }
+    throw new Error("Payment gateway unavailable");
+  }
 
     // 7. Simpan Transaksi
     const transaction = await tx.transaction.create({
@@ -148,18 +178,31 @@ export async function createDokuTransaction(
     });
 
     // 8. Kurangi Kursi Event
-    await tx.event.update({
-      where: { id: eventId },
+    const updatedEvent = await tx.event.update({
+      where: { 
+        id: eventId,
+        seats: { gte: quantity } // Prevent overbooking
+      },
       data: { seats: { decrement: quantity } }
     });
 
+    if (!updatedEvent) throw new Error("Seats no longer available");
+
     return {
-      transaction,
+      transaction: { id: transaction.id, status: transaction.status }, // Minimal data
       payment_url: response.data.payment.url,
       points_used: pointsUsed
     };
   });
-}
+  } catch (error) {
+    console.error("Transaction failed:", error);
+    let errorMessage = "Unknown error";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    throw new Error(`Payment processing error: ${errorMessage}`);
+  }
+} 
 
 // Line Victor Adi Winata
 // This function is used on the EO daashboard to view, accept, and reject transactions
@@ -184,7 +227,8 @@ export async function getOrganizerTransactions(userId: number) {
 export async function updateTransactionStatus(
   transactionId: string,
   userId: number,
-  newStatus: 'done' | 'rejected'
+  newStatus: 'done' | 'rejected',
+  reason?: string
 ) {
   return prisma.$transaction(async (tx) => {
     // Verify transaction ownership
@@ -193,11 +237,44 @@ export async function updateTransactionStatus(
         id: transactionId,
         event: { user_id: userId }
       },
-      include: { event: true }
+      include: { event: true, user: true }
     });
 
     if (!transaction) throw new Error("Transaction not found");
     if (transaction.status === 'done') throw new Error("Transaction already completed");
+
+    // Restore resources if rejecting
+    if (newStatus === 'rejected') {
+      // Restore seats
+      await tx.event.update({
+        where: { id: transaction.event_id },
+        data: { seats: { increment: transaction.quantity } }
+      });
+
+      // Restore points
+      if (transaction.point_used && transaction.point_used > 0) {
+        await tx.users.update({
+          where: { id: transaction.user_id },
+          data: { user_points: { increment: transaction.point_used } }
+        });
+      }
+
+      // Restore coupon
+      if (transaction.coupon_code) {
+        await tx.coupon.updateMany({
+          where: { code: transaction.coupon_code },
+          data: { current_usage: { decrement: 1 } }
+        });
+      }
+
+      // Restore voucher
+      if (transaction.voucher_code) {
+        await tx.voucher.updateMany({
+          where: { code: transaction.voucher_code },
+          data: { current_usage: { decrement: 1 } }
+        });
+      }
+    }
 
     // Update transaction status
     const updatedTransaction = await tx.transaction.update({
@@ -205,17 +282,12 @@ export async function updateTransactionStatus(
       data: { status: newStatus }
     });
 
-    // Update event seats if approved
-    if (newStatus === 'done') {
-      await tx.event.update({
-        where: { id: transaction.event_id },
-        data: {
-          seats: {
-            decrement: transaction.quantity
-          }
-        }
-      });
-    }
+ // Send email after transaction commits
+    await sendTransactionStatusEmail(
+      { ...transaction, ...updatedTransaction },
+      newStatus === 'done' ? 'approved' : 'rejected',
+      reason
+    );
 
     return updatedTransaction;
   });

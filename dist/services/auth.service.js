@@ -49,7 +49,7 @@ function FindUserByEmail(email) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             // find First is used to find the first record that matches the given criteria
-            const users = yield prisma_1.default.users.findFirst({
+            const users = yield prisma_1.default.users.findUnique({
                 // select to get the specific fields to return
                 select: {
                     id: true,
@@ -101,14 +101,6 @@ function RegisterService(param) {
             const isExist = yield FindUserByEmail(param.email);
             if (isExist)
                 throw new Error("Email is already registered");
-            // Create roles if they don't exist
-            yield prisma_1.default.role.createMany({
-                data: [
-                    { id: 1, name: 'Customer' },
-                    { id: 2, name: 'Event Organizer' }
-                ],
-                skipDuplicates: true
-            });
             // hash the password using bcrypt (hash, getSaltSync)
             const salt = (0, bcrypt_1.genSaltSync)(10);
             const hashedPassword = yield (0, bcrypt_1.hash)(param.password, salt);
@@ -118,19 +110,39 @@ function RegisterService(param) {
                 // Check if referral code exists if provided. 
                 // User can provide a referral code when account registering or leave it empty
                 let referringUserId = null;
+                // 2. Create user - changed referred_by to use number directly
+                const user = yield tx.users.create({
+                    data: {
+                        first_name: param.first_name,
+                        last_name: param.last_name,
+                        email: param.email,
+                        password: hashedPassword,
+                        is_verified: false,
+                        roleId: param.roleId || defaultRoleId, // Default role ID or User can provide a custom one (2)
+                        user_points: 0, // Default value for user_points
+                        expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry,
+                        referred_by: null, // will be updated below if referral is valid
+                        referral_code: `TIX-${Date.now().toString(36)}`,
+                    },
+                });
                 // 1. Check referral code 
                 // If referral code is provided, find the user with that code
                 if (param.referred_by) {
-                    const referringUser = yield tx.users.findFirst({
+                    const referringUser = yield tx.users.findUnique({
                         where: {
-                            referral_code: param.referred_by, // Match against referral_code
-                            id: { not: param.id ? parseInt(param.id, 10) : undefined } // Ensure user can't refer themselves
+                            referral_code: param.referred_by,
+                            // Prevent self-referral
+                            NOT: { id: user.id }
                         }
                     });
-                    if (!referringUser) {
+                    if (!referringUser)
                         throw new Error('Invalid referral code');
-                    }
                     referringUserId = referringUser.id;
+                    // Update the user with the valid referred_by
+                    yield tx.users.update({
+                        where: { id: user.id },
+                        data: { referred_by: referringUserId }
+                    });
                 }
                 // Check if the referring user exists in the database
                 const referringUserExists = yield prisma_1.default.users.findUnique({
@@ -148,29 +160,7 @@ function RegisterService(param) {
                         throw new Error('The referral code does not exist');
                     }
                 }
-                // 2. Create user - changed referred_by to use number directly
-                const user = yield tx.users.create({
-                    data: {
-                        first_name: param.first_name,
-                        last_name: param.last_name,
-                        email: param.email,
-                        password: hashedPassword,
-                        is_verified: false,
-                        roleId: param.roleId || defaultRoleId, // Default role ID or User can provide a custom one (2)
-                        user_points: 0, // Default value for user_points
-                        expiry_points: new Date(new Date().setMonth(new Date().getMonth() + 3)), // 3 months expiry,
-                        referred_by: referringUserId,
-                        referral_code: "",
-                    },
-                });
-                // lines 119-133 insert into user table in prisma database
-                // 3. Generate and update the user's own referral code
-                const finalReferralCode = `TIX-${user.id.toString().padStart(6, '0')}`;
-                yield tx.users.update({
-                    where: { id: user.id },
-                    data: { referral_code: finalReferralCode },
-                });
-                // 4. Process referral rewards if applicable
+                // 3. Process referral rewards if applicable
                 if (referringUserId) {
                     try {
                         yield (0, referralrewards_services_1.processReferralRewards)(tx, user.id, referringUserId, user.email);
@@ -184,12 +174,12 @@ function RegisterService(param) {
                 // payload is the data that will be included in the JWT token
                 const payload = { email: user.email };
                 const token = (0, jsonwebtoken_1.sign)(payload, String(config_1.SECRET_KEY), { expiresIn: "15m" });
-                // 5. Send verification notification email
+                // 4. Send verification notification email
                 yield (0, verificationemail_service_1.sendVerificationEmail)(param.email, token);
                 return user;
             }), {
-                maxWait: 20000, // Maximum time to wait for the transaction (20 seconds)
-                timeout: 15000 // Maximum time the transaction can run (15 seconds)
+                maxWait: 30000, // Maximum time to wait for the transaction (20 seconds)
+                timeout: 20000 // Maximum time the transaction can run (15 seconds)
             });
         }
         catch (error) {

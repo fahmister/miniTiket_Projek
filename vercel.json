@@ -14,8 +14,5 @@
             "src": "/(.*)",
             "dest": "dist/index.js"
         }
-    ],
-    "functions": {
-        "api/*.js": { "memory": 3008 }
-    }
+    ]
 }
